@@ -1,0 +1,32 @@
+<assembly>
+	<id>bin</id>
+	<formats>
+		<format>${platform.package.archivetype}</format>
+	</formats>
+	<baseDirectory>jmx-cmd-${version}</baseDirectory>
+
+	<fileSets>
+		<!--<fileSet>-->
+			<!--<directory>target</directory>-->
+			<!--<outputDirectory>bin</outputDirectory>-->
+			<!--<includes>-->
+				<!--<include>${artifactId}-${version}.jar</include>-->
+			<!--</includes>-->
+			<!--<directoryMode>755</directoryMode>-->
+			<!--<fileMode>444</fileMode>-->
+		<!--</fileSet>-->
+		<fileSet>
+			<directory>src/main/resources</directory>
+			<outputDirectory>bin</outputDirectory>
+			<fileMode>755</fileMode>
+		</fileSet>
+	</fileSets>
+
+	<files>
+		<file>
+			<source>target/${artifactId}-${version}.jar</source>
+			<outputDirectory>bin</outputDirectory>
+			<destName>jcmd.jar</destName>
+		</file>
+	</files>
+</assembly>
