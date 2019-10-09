@@ -1,0 +1,128 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://www.ricemap.com/utilities/config"
+           xmlns="http://www.ricemap.com/utilities/config"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified" version="1.0">
+
+	<xs:complexType name="PersistenceType">
+		<xs:attribute name="name" use="required" />
+		<xs:attribute name="host" type="xs:string" use="optional" default="localhost" />
+		<xs:attribute name="port" type="xs:int" use="required" />
+		<xs:attribute name="username" use="optional" />
+		<xs:attribute name="password" use="optional" />
+		<xs:attribute name="enabled" type="xs:boolean" use="optional" default="true" />
+	</xs:complexType>
+
+	<xs:complexType name="MongoDBType">
+		<xs:complexContent>
+			<xs:extension base="PersistenceType">
+				<xs:sequence>
+					<xs:element name="secondary" type="MongoDBSecondaryType" minOccurs="0" maxOccurs="unbounded" />
+				</xs:sequence>
+				<xs:attribute name="authSource" default="admin" type="xs:string" use="optional" />
+				<xs:attribute name="maxConnections" default="2" type="xs:int" use="optional" />
+				<xs:attribute name="collection" type="xs:string" use="optional" />
+				<xs:attribute name="preferSecondaryRead" type="xs:boolean" use="optional" default="true" />
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="SimpleEndPointType">
+		<xs:attribute name="enabled" type="xs:boolean" default="true" use="optional" />
+		<xs:attribute name="host" type="xs:string" default="localhost" use="optional" />
+		<xs:attribute name="port" type="xs:int" use="required" />
+	</xs:complexType>
+
+	<xs:complexType name="MongoDBSecondaryType">
+		<xs:complexContent>
+			<xs:extension base="SimpleEndPointType">
+				<xs:attribute name="name" type="xs:string" use="optional" />
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="EndPointType">
+		<xs:complexContent>
+			<xs:extension base="SimpleEndPointType">
+				<!-- default size is 2Mb -->
+				<xs:attribute name="sendBuffer" type="xs:int" use="optional" default="2097152" />
+				<!-- default heart beat interval is 5 seconds -->
+				<xs:attribute name="heartBeatIntervalMillis" type="xs:int" use="optional" />
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="gRPCType">
+		<xs:complexContent>
+			<xs:extension base="SimpleEndPointType">
+				<!-- default size is 2Mb -->
+				<xs:attribute name="sendBuffer" type="xs:int" use="optional" default="2097152" />
+				<!-- default heart beat interval is 5 seconds -->
+				<xs:attribute name="heartBeatIntervalMillis" type="xs:int" use="optional" />
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="EndPointGroupNodeType">
+		<xs:complexContent>
+			<xs:extension base="EndPointType">
+				<xs:attribute name="name" type="xs:string" use="required" />
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="HttpServerType">
+		<xs:complexContent>
+			<xs:extension base="EndPointType">
+				<xs:attribute name="path" type="xs:string">
+					<xs:annotation xml:lang="en">
+						<xs:documentation>
+							path start with "/", like "/path"
+						</xs:documentation>
+					</xs:annotation>
+				</xs:attribute>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="MySQLType">
+		<xs:complexContent>
+			<xs:extension base="PersistenceType">
+
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="RedisAddrType">
+		<xs:complexContent>
+			<xs:extension base="EndPointType">
+				<xs:attribute name="dbIndex" type="xs:int" default="0" />
+				<xs:attribute name="password" type="xs:string" />
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+
+	<xs:simpleType name="ServiceTypeEnum">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="InstrumentService" />
+			<xs:enumeration value="MarketDataService" />
+			<xs:enumeration value="OrderService" />
+			<xs:enumeration value="PlayService" />
+			<xs:enumeration value="InformerService" />
+			<xs:enumeration value="StrategyManagementService" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="SerializerTypeEnum">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="Rice" />
+			<xs:enumeration value="Protobuf" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:complexType name="MemoryHealthCheck">
+		<xs:attribute name="percentage" type="xs:double" />
+		<xs:attribute name="lastMin" type="xs:int" />
+	</xs:complexType>
+</xs:schema>

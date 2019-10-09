@@ -12,5 +12,12 @@
 
 	<artifactId>jmx-client</artifactId>
 
+	<dependencies>
+		<dependency>
+			<groupId>com.ricequant.rqboot.jmx</groupId>
+			<artifactId>jmx-shared-resource</artifactId>
+			<version>1.0-SNAPSHOT</version>
+		</dependency>
+	</dependencies>
 
 </project>
