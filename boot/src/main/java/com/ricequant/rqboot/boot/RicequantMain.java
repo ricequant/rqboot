@@ -111,7 +111,7 @@ public class RicequantMain implements IDaemonCallback {
   }
 
   protected List<Class<IApplication>> findAppImplementation() {
-    return ClassLoadHelper.findImplInClassPath(IApplication.class, name -> name.startsWith("com.ricemap"));
+    return ClassLoadHelper.findImplInClassPath(IApplication.class, name -> true);
   }
 
   @Override
@@ -137,7 +137,7 @@ public class RicequantMain implements IDaemonCallback {
       }
 
       try {
-        iApplication = apps.get(0).newInstance();
+        iApplication = apps.get(0).getDeclaredConstructor().newInstance();
       }
       catch (Throwable e) {
         throw new RuntimeException("Error instantiating application, must have default constructor available", e);
