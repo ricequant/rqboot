@@ -29,7 +29,7 @@ import java.util.jar.Manifest;
 /**
  * @author chenfeng
  */
-public class RicemapMain implements IDaemonCallback {
+public class RicequantMain implements IDaemonCallback {
 
   static {
     Security.setProperty("jdk.tls.disabledAlgorithms", "");
@@ -47,10 +47,10 @@ public class RicemapMain implements IDaemonCallback {
 
   public static void main(final String[] args) throws Exception {
     Security.setProperty("jdk.tls.disabledAlgorithms", "");
-    boot(new RicemapMain(), args);
+    boot(new RicequantMain(), args);
   }
 
-  public static void boot(RicemapMain main, final String[] args) {
+  public static void boot(RicequantMain main, final String[] args) {
     if (reportVersion(args))
       return;
 
@@ -62,7 +62,7 @@ public class RicemapMain implements IDaemonCallback {
     for (String arg : args) {
       if ("-v".equals(arg) || "--version".equals(arg)) {
 
-        System.out.println(RicemapMain.class.getPackage().getSpecificationVersion());
+        System.out.println(RicequantMain.class.getPackage().getSpecificationVersion());
 
         return true;
       }
@@ -70,7 +70,7 @@ public class RicemapMain implements IDaemonCallback {
     return false;
   }
 
-  private static void run(RicemapMain main, final String[] args) {
+  private static void run(RicequantMain main, final String[] args) {
     main.init(args);
     try {
       main.start();
@@ -82,7 +82,7 @@ public class RicemapMain implements IDaemonCallback {
 
   private IApplication findApplicationClassFromManifest() {
     try {
-      Enumeration<URL> resources = RicemapMain.class.getClassLoader().getResources("META-INF/MANIFEST.MF");
+      Enumeration<URL> resources = RicequantMain.class.getClassLoader().getResources("META-INF/MANIFEST.MF");
 
       while (resources.hasMoreElements()) {
         InputStream content = resources.nextElement().openStream();
@@ -269,7 +269,7 @@ public class RicemapMain implements IDaemonCallback {
 
     @Override
     public void run() {
-      RicemapMain.this.stop();
+      RicequantMain.this.stop();
     }
   }
 }
