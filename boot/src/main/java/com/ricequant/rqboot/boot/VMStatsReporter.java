@@ -1,7 +1,8 @@
 package com.ricequant.rqboot.boot;
 
-import com.ricemap.utilities.jmx.shared_resource.annotations.JmxBean;
-import com.ricemap.utilities.jmx.shared_resource.annotations.JmxMethod;
+
+import com.ricequant.rqboot.jmx.shared_resource.annotations.JmxBean;
+import com.ricequant.rqboot.jmx.shared_resource.annotations.JmxMethod;
 
 /**
  * @author chenfeng
