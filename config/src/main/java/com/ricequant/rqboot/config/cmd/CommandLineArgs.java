@@ -17,7 +17,7 @@ public class CommandLineArgs {
   private final List<IArgument> iArgumentList;
 
   public CommandLineArgs() {
-    this(true);
+    this(false);
   }
 
   public CommandLineArgs(boolean withDefaultOptions) {
