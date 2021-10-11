@@ -241,11 +241,8 @@ public class RicequantMain implements IDaemonCallback {
    * null, if your application does not need it.
    *
    * @param logConfig
-   * @param optionMap
-   *         parsed command line arguments in a map
-   *
+   * @param optionMap parsed command line arguments in a map
    * @return the JmxBeanRegistry
-   *
    * @throws Exception
    */
   protected JmxBeanRegistry startJmxServer(LogConfiguration logConfig, OptionMap optionMap) throws Exception {
@@ -258,8 +255,11 @@ public class RicequantMain implements IDaemonCallback {
       server.close();
     }
 
-    JmxBeanRegistry manager =
-            new JmxBeanRegistry(new InetSocketAddress(host, port), optionMap.getValue(RicemapDefaultArgs.InstanceName));
+    String processName = optionMap.getValue(RicemapDefaultArgs.InstanceName);
+    if (processName == null)
+      processName = getApplication().getAppName();
+
+    JmxBeanRegistry manager = new JmxBeanRegistry(new InetSocketAddress(host, port), processName);
 
     manager.register(new LogLevelJmx(logConfig));
     return manager;

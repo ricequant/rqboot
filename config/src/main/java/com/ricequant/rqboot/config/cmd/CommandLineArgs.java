@@ -24,14 +24,16 @@ public class CommandLineArgs {
     iOptions = new Options();
     iNameArgumentMap = new HashMap<>();
     iArgumentList = new ArrayList<>();
+
+    withArguments(RicemapDefaultArgs.Help);
+    withArguments(RicemapDefaultArgs.InstanceName);
+
     if (withDefaultOptions)
       initOptions();
   }
 
   private void initOptions() {
-    withArguments(RicemapDefaultArgs.Help);
     withArguments(RicemapDefaultArgs.DevMode);
-    withArguments(RicemapDefaultArgs.InstanceName);
     withArguments(RicemapDefaultArgs.ConfigFile);
     withArguments(RicemapDefaultArgs.TempDir);
     withArguments(RicemapDefaultArgs.DebugLevel);
@@ -82,15 +84,15 @@ public class CommandLineArgs {
       }
 
       if (arg.isFlag() && line.hasOption(arg.getShortName()) && line.getOptionValues(arg.getShortName()) != null) {
-        reasons.add("Argument <" + arg.getShortName() + "> is defined as flag but has value: " + line
-                .getOptionValue(arg.getShortName()));
+        reasons.add("Argument <" + arg.getShortName() + "> is defined as flag but has value: " + line.getOptionValue(
+                arg.getShortName()));
         continue;
       }
 
       if (line.hasOption(arg.getShortName()) && line.getOptionValues(arg.getShortName()) != null
               && arg.getMaxCount() > 0 && line.getOptionValues(arg.getShortName()).length > arg.getMaxCount()) {
-        reasons.add("Argument <" + arg.getShortName() + "> can have maximum count of " + arg.getMaxCount() + ", " +
-                "but there are " + line.getOptionValues(arg.getShortName()).length);
+        reasons.add("Argument <" + arg.getShortName() + "> can have maximum count of " + arg.getMaxCount() + ", "
+                + "but there are " + line.getOptionValues(arg.getShortName()).length);
       }
     }
 

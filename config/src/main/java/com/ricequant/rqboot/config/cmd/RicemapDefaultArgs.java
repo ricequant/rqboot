@@ -9,7 +9,7 @@ public enum RicemapDefaultArgs implements IArgument {
           + "Default will be production mode and loggers will only output to files"),
   InstanceName("n", "instance-name", false, "Application instance name, will be used in logging, "
           + "configuration file lookup, service registration and other places where identification of the " +
-          "application instance is required", null, 1, true, null),
+          "application instance is required", null, 1, false, null),
   ConfigFile("c", "conf-file", false, "URI of the configuration file, like http://127.0.0.1/, "
           + "or file://path/to/config/file.xml, or path/to/config/file.xml (default protocol is <file>)"),
   TempDir("t", "temp-dir", false, "Temporary file directory"),

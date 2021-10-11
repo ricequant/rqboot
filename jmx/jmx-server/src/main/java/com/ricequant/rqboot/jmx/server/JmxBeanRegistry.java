@@ -37,7 +37,7 @@ public class JmxBeanRegistry implements IJmxBeanRegistry {
     env.put("com.sun.management.jmxremote.ssl", "false");
     env.put("com.sun.management.jmxremote", "true");
     JMXServiceURL url = new JMXServiceURL(
-            "service:jmx:rmi:///jndi/rmi://" + bind.getHostString() + ":" + String.valueOf(bind.getPort()) +
+            "service:jmx:rmi:///jndi/rmi://" + bind.getHostString() + ":" + bind.getPort() +
                     "/jmxrmi");
     LocateRegistry.createRegistry(bind.getPort());
     iConnectorServer = JMXConnectorServerFactory.newJMXConnectorServer(url, env, iBeanServer);
