@@ -39,9 +39,15 @@ public class OptionMap {
       return Collections.emptySet();
 
     if (set == null) {
-      set = new HashSet<>(Arrays.asList(opt.getDefaultValue().split(opt.getMultipleArgSeparator())));
+      return new HashSet<>(Arrays.asList(opt.getDefaultValue().split(opt.getMultipleArgSeparator())));
     }
-    return set;
+
+    Set<String> ret = new LinkedHashSet<>();
+    for (String value : set) {
+      ret.addAll(Arrays.asList(value.split(opt.getMultipleArgSeparator())));
+    }
+
+    return ret;
   }
 
   public String getValue(IArgument opt) {
