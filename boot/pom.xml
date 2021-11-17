@@ -12,7 +12,7 @@
 		<groupId>com.ricequant</groupId>
 		<artifactId>rqboot</artifactId>
 		<version>1.0-SNAPSHOT</version>
-		<relativePath>../</relativePath>
+		<relativePath>../pom.xml</relativePath>
 	</parent>
 
 	<dependencies>

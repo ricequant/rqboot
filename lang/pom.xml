@@ -7,7 +7,7 @@
 		<artifactId>rqboot</artifactId>
 		<groupId>com.ricequant</groupId>
 		<version>1.0-SNAPSHOT</version>
-		<relativePath>../</relativePath>
+		<relativePath>../pom.xml</relativePath>
 	</parent>
 
 	<groupId>com.ricequant.rqboot.lang</groupId>
