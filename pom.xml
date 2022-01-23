@@ -33,6 +33,27 @@
 					<generateBackupPoms>false</generateBackupPoms>
 				</configuration>
 			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<version>3.1.0</version>
+				<extensions>false</extensions>
+				<inherited>true</inherited>
+				<configuration>
+					<!--                    <outputDirectory>/absolute/path/to/the/output/directory</outputDirectory>-->
+					<!--                    <finalName>filename-of-generated-jar-file</finalName>-->
+					<attach>false</attach>
+				</configuration>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 
 		<pluginManagement>

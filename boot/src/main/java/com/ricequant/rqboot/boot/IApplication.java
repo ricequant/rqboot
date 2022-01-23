@@ -10,6 +10,10 @@ import com.ricequant.rqboot.jmx.server.IJmxBeanRegistry;
  */
 public interface IApplication {
 
+  default boolean withDefaultArgs() {
+    return false;
+  }
+
   String getAppName();
 
   void customizeArgs(CommandLineArgs definedArgs);

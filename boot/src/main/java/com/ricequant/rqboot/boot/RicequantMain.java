@@ -146,7 +146,7 @@ public class RicequantMain implements IDaemonCallback {
     }
 
     CommandLineParser cp = new CommandLineParser(iApplication.getAppName());
-    CommandLineArgs definedArgs = new CommandLineArgs();
+    CommandLineArgs definedArgs = new CommandLineArgs(iApplication.withDefaultArgs());
     iApplication.customizeArgs(definedArgs);
 
     OptionMap optionMap = cp.parse(args, definedArgs);
