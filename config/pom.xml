@@ -44,6 +44,7 @@
 			<plugin>
 				<groupId>com.github.davidmoten</groupId>
 				<artifactId>jax-maven-plugin</artifactId>
+				<version>0.2</version>
 				<executions>
 					<execution>
 						<id>generate-config-schema</id>
@@ -144,6 +145,11 @@
 	</build>
 
 	<dependencies>
+		<dependency>
+			<groupId>jakarta.xml.bind</groupId>
+			<artifactId>jakarta.xml.bind-api</artifactId>
+			<version>4.0.0</version>
+		</dependency>
 		<dependency>
 			<groupId>com.ricequant.rqboot.lang</groupId>
 			<artifactId>lang</artifactId>
