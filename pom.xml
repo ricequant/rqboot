@@ -10,7 +10,7 @@
 	<packaging>pom</packaging>
 
 	<properties>
-		<jdk.version>11</jdk.version>
+		<jdk.version>17</jdk.version>
 	</properties>
 
 	<build>
