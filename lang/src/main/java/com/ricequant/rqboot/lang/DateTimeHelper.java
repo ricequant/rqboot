@@ -28,7 +28,7 @@ public class DateTimeHelper {
     cMicroDiff = (System.nanoTime() - milliCost) / 1000;
   }
 
-  private static long getCurrentMicros() {
+  public static long getCurrentMicros() {
     return cBeginMicro + (System.nanoTime() / 1000 - cMicroDiff);
   }
 
