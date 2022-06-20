@@ -12,6 +12,26 @@ import java.util.Date;
  */
 public class DateTimeHelper {
 
+  private static final long cBeginMicro;
+
+  private static final long cMicroDiff;
+
+  static {
+
+    long curNano = System.nanoTime();
+    for (int i = 0; i < 1000; i++) {
+      System.currentTimeMillis();
+    }
+    long milliCost = (System.nanoTime() - curNano) / 1000;
+
+    cBeginMicro = System.currentTimeMillis() * 1000;
+    cMicroDiff = (System.nanoTime() - milliCost) / 1000;
+  }
+
+  private static long getCurrentMicros() {
+    return cBeginMicro + (System.nanoTime() / 1000 - cMicroDiff);
+  }
+
   public static boolean isDateFormatValid(int dateTime) {
     try {
       toDateTime(dateTime);
@@ -134,9 +154,7 @@ public class DateTimeHelper {
 
 
   /**
-   * @param date
-   *         Market date, valid values: YYYYMMDD, in which YYYY=0000-9999, MM=01-12, DD=01-31
-   *
+   * @param date Market date, valid values: YYYYMMDD, in which YYYY=0000-9999, MM=01-12, DD=01-31
    * @return millis from 1970.1.1
    */
   public static long dateToMillis(int date) {
@@ -155,9 +173,7 @@ public class DateTimeHelper {
   }
 
   /**
-   * @param time
-   *         Market data entry's time, valid values; hhmmssmmm, in which hh=0-23, mm=00-59, ss=00-59, mmm=000-999
-   *
+   * @param time Market data entry's time, valid values; hhmmssmmm, in which hh=0-23, mm=00-59, ss=00-59, mmm=000-999
    * @return millis from 1970.1.1
    */
   public static long timeToMillis(int time) {
@@ -174,11 +190,8 @@ public class DateTimeHelper {
   }
 
   /**
-   * @param date
-   *         Market date, valid values: YYYYMMDD, in which YYYY=0000-9999, MM=01-12, DD=01-31
-   * @param time
-   *         Market data entry's time, valid values; hhmmssmmm, in which hh=0-23, mm=00-59, ss=00-59, mmm=000-999
-   *
+   * @param date Market date, valid values: YYYYMMDD, in which YYYY=0000-9999, MM=01-12, DD=01-31
+   * @param time Market data entry's time, valid values; hhmmssmmm, in which hh=0-23, mm=00-59, ss=00-59, mmm=000-999
    * @return com.google.protobuf.Timestamp
    */
   public static long toLinuxTimestamp(int date, int time) {
