@@ -29,14 +29,14 @@ public class JaxbHelper<T> {
 
   public static final String COMMON_CONFIG_TYPES_XSD_NAME = "config-types.xsd";
 
-  private SchemaFactory iSchemaFacotry;
+  private final SchemaFactory iSchemaFactory;
 
-  private Unmarshaller iUnmarshaller;
+  private final Unmarshaller iUnmarshaller;
 
   private final Logger iLogger = LoggerFactory.getLogger(getClass());
 
   public JaxbHelper(Class<T> clazz) {
-    iSchemaFacotry = SchemaFactory.newInstance(javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI);
+    iSchemaFactory = SchemaFactory.newInstance(javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI);
     try {
       JAXBContext jaxbContext = JAXBContext.newInstance(clazz);
       iUnmarshaller = jaxbContext.createUnmarshaller();
@@ -53,7 +53,7 @@ public class JaxbHelper<T> {
 
     Schema schema;
     try {
-      schema = iSchemaFacotry.newSchema(sources.toArray(new Source[sources.size()]));
+      schema = iSchemaFactory.newSchema(sources.toArray(new Source[0]));
     }
     catch (SAXException e) {
       throw new IllegalArgumentException("Unable to resolve schema files: " + Arrays.toString(sourceNames), e);
