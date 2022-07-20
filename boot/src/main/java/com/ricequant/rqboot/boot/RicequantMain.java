@@ -269,7 +269,12 @@ public class RicequantMain implements IDaemonCallback {
 
     @Override
     public void run() {
-      RicequantMain.this.stop();
+      try {
+        RicequantMain.this.stop();
+      }
+      catch (Exception e) {
+        e.printStackTrace();
+      }
     }
   }
 }
