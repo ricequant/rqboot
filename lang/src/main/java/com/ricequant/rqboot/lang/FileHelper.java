@@ -2,14 +2,40 @@ package com.ricequant.rqboot.lang;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.*;
 
 /**
  * @author chenfeng
  */
 public class FileHelper {
+
+  private static File temporaryDir;
+
+  public static File createTempFile(String subDir, String filename) throws IOException {
+    // Prepare temporary file
+    if (temporaryDir == null) {
+      temporaryDir = createTempDirectory(subDir);
+      temporaryDir.deleteOnExit();
+    }
+
+    return new File(temporaryDir, filename);
+  }
+
+
+  public static File createTempDirectory(String prefix) throws IOException {
+    String tempDir = System.getProperty("java.io.tmpdir");
+    File generatedDir = new File(tempDir, prefix + System.nanoTime());
+
+    if (!generatedDir.mkdir())
+      throw new IOException("Failed to create temp directory " + generatedDir.getName());
+
+    return generatedDir;
+  }
+
 
   public static InputStream resolveFileToStream(String configDir, String filePath, ClassLoader classLoader) {
     try {
@@ -80,4 +106,41 @@ public class FileHelper {
 
     return null;
   }
+
+  public static void copyStreamToTempAndLoad(InputStream is, File temp) throws IOException {
+    try {
+      Files.copy(is, temp.toPath(), StandardCopyOption.REPLACE_EXISTING);
+    }
+    catch (IOException e) {
+      temp.delete();
+      throw e;
+    }
+
+    try {
+      System.load(temp.getAbsolutePath());
+    }
+    catch (Throwable e) {
+      e.printStackTrace();
+    }
+    finally {
+      if (isPosixCompliant()) {
+        // Assume POSIX compliant file system, can be deleted after loading
+        temp.delete();
+      }
+      else {
+        // Assume non-POSIX, and don't delete until last file descriptor closed
+        temp.deleteOnExit();
+      }
+    }
+  }
+
+  public static boolean isPosixCompliant() {
+    try {
+      return FileSystems.getDefault().supportedFileAttributeViews().contains("posix");
+    }
+    catch (FileSystemNotFoundException | ProviderNotFoundException | SecurityException e) {
+      return false;
+    }
+  }
+
 }

@@ -95,7 +95,7 @@ public class LogConfiguration {
     System.out.println("Changed log level to: " + level);
   }
 
-  private void setLevel(LoggerContext context, String category, Level level) {
+  private static void setLevel(LoggerContext context, String category, Level level) {
     Configuration loggerConfig = context.getConfiguration();
     if (!context.hasLogger(category)) {
       Logger logger = context.getLogger(category);
@@ -106,6 +106,11 @@ public class LogConfiguration {
     else {
       loggerConfig.getLoggerConfig(category).setLevel(level);
     }
+  }
+
+  public static void setLevel(String category, Level level) {
+    LoggerContext context = (LoggerContext) LogManager.getContext(false);
+    setLevel(context, category, level);
   }
 
   private void setRootLoggerLevel(Level level) {
