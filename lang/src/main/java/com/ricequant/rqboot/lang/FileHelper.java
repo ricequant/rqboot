@@ -30,6 +30,9 @@ public class FileHelper {
     String tempDir = System.getProperty("java.io.tmpdir");
     File generatedDir = new File(tempDir, prefix + System.nanoTime());
 
+    if (generatedDir.exists() && generatedDir.isDirectory() && generatedDir.canWrite())
+      return generatedDir;
+
     if (!generatedDir.mkdir())
       throw new IOException("Failed to create temp directory " + generatedDir.getName());
 
