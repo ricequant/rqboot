@@ -35,13 +35,17 @@ public class NativeHelper {
       fileName = "lib" + name + ".so";
     else if (SystemUtils.IS_OS_WINDOWS)
       fileName = name + ".dll";
-    else if (SystemUtils.IS_OS_MAC_OSX)
+    else if (SystemUtils.IS_OS_MAC_OSX) {
       fileName = "lib" + name + ".dylib";
+      if (NativeHelper.class.getClassLoader().getResource(fileName) == null)
+        fileName = "lib" + name + ".a";
+    }
     InputStream resource = NativeHelper.class.getClassLoader().getResourceAsStream(fileName);
     if (resource == null) {
       throw new MissingResourceException("library not found", NativeHelper.class.getName(), fileName);
     }
     FileHelper.copyStreamToTempAndLoad(resource, FileHelper.createTempFile(NATIVE_FOLDER_PATH_PREFIX, fileName));
+    resource.close();
     loaded.add(name);
   }
 
