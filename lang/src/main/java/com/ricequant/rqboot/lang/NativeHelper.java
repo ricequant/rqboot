@@ -6,9 +6,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashSet;
-import java.util.MissingResourceException;
-import java.util.Set;
+import java.util.*;
 
 public class NativeHelper {
 
@@ -27,29 +25,53 @@ public class NativeHelper {
   private NativeHelper() {
   }
 
-  public static void loadLibraryFromResources(String name) throws IOException {
-    if (loaded.contains(name))
-      return;
-    String fileName = name;
-    if (SystemUtils.IS_OS_LINUX)
-      fileName = name + ".so";
-    else if (SystemUtils.IS_OS_WINDOWS)
-      fileName = name + ".dll";
-    else if (SystemUtils.IS_OS_MAC_OSX) {
-      fileName = name + ".dylib";
+  public static void loadLibraryFromResources(String... names) throws IOException {
+    List<File> tempFiles = new ArrayList<>();
+    for (var name : names) {
+      if (loaded.contains(name))
+        return;
+      String fileName = name;
+      if (SystemUtils.IS_OS_LINUX)
+        fileName = name + ".so";
+      else if (SystemUtils.IS_OS_WINDOWS)
+        fileName = name + ".dll";
+      else if (SystemUtils.IS_OS_MAC_OSX) {
+        fileName = name + ".dylib";
+        if (NativeHelper.class.getClassLoader().getResource(fileName) == null)
+          fileName = name + ".a";
+      }
+
       if (NativeHelper.class.getClassLoader().getResource(fileName) == null)
-        fileName = name + ".a";
+        fileName = "lib" + fileName;
+      InputStream resource = NativeHelper.class.getClassLoader().getResourceAsStream(fileName);
+
+      File tempFile = null;
+      try (resource) {
+        if (resource == null) {
+          throw new MissingResourceException("library not found", NativeHelper.class.getName(), fileName);
+        }
+
+        tempFile = FileHelper.createTempFile(NATIVE_FOLDER_PATH_PREFIX, fileName);
+        FileHelper.copyStreamToTemp(resource, tempFile);
+        tempFiles.add(tempFile);
+      }
+      catch (Throwable t) {
+        if (tempFile != null)
+          FileHelper.safeDeleteFile(tempFile);
+        throw new IOException("Unable to create file", t);
+      }
     }
 
-    if (NativeHelper.class.getClassLoader().getResource(fileName) == null)
-      fileName = "lib" + fileName;
-    InputStream resource = NativeHelper.class.getClassLoader().getResourceAsStream(fileName);
-    if (resource == null) {
-      throw new MissingResourceException("library not found", NativeHelper.class.getName(), fileName);
-    }
-    FileHelper.copyStreamToTempAndLoad(resource, FileHelper.createTempFile(NATIVE_FOLDER_PATH_PREFIX, fileName));
-    resource.close();
-    loaded.add(name);
+    String libPath = System.getProperty("java.library.path");
+    libPath += File.pathSeparator + FileHelper.temporaryDir().getAbsolutePath();
+    System.setProperty("java.library.path", libPath);
+    for (File f : tempFiles)
+      FileHelper.loadPath(f);
+
+    for (File f : tempFiles)
+      FileHelper.safeDeleteFile(f);
+
+    loaded.addAll(Arrays.asList(names));
   }
 
 
@@ -86,7 +108,7 @@ public class NativeHelper {
     if (is == null)
       throw new FileNotFoundException("File " + path + " was not found inside JAR.");
 
-    FileHelper.copyStreamToTempAndLoad(is, temp);
+    FileHelper.copyStreamToTemp(is, temp);
   }
 
 

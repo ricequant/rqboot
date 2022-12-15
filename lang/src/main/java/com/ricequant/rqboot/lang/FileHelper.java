@@ -21,8 +21,11 @@ public class FileHelper {
       temporaryDir = createTempDirectory(subDir);
       temporaryDir.deleteOnExit();
     }
-
     return new File(temporaryDir, filename);
+  }
+
+  public static File temporaryDir () {
+    return temporaryDir;
   }
 
 
@@ -110,30 +113,28 @@ public class FileHelper {
     return null;
   }
 
-  public static void copyStreamToTempAndLoad(InputStream is, File temp) throws IOException {
+  public static void loadPath(File temp) {
+    System.load(temp.getAbsolutePath());
+  }
+
+  public static void safeDeleteFile(File temp) {
+    if (isPosixCompliant()) {
+      // Assume POSIX compliant file system, can be deleted after loading
+      temp.delete();
+    }
+    else {
+      // Assume non-POSIX, and don't delete until last file descriptor closed
+      temp.deleteOnExit();
+    }
+  }
+
+  public static void copyStreamToTemp(InputStream is, File temp) throws IOException {
     try {
       Files.copy(is, temp.toPath(), StandardCopyOption.REPLACE_EXISTING);
     }
     catch (IOException e) {
       temp.delete();
       throw e;
-    }
-
-    try {
-      System.load(temp.getAbsolutePath());
-    }
-    catch (Throwable e) {
-      e.printStackTrace();
-    }
-    finally {
-      if (isPosixCompliant()) {
-        // Assume POSIX compliant file system, can be deleted after loading
-        temp.delete();
-      }
-      else {
-        // Assume non-POSIX, and don't delete until last file descriptor closed
-        temp.deleteOnExit();
-      }
     }
   }
 
