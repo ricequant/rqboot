@@ -7,6 +7,9 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.MissingResourceException;
 
 /**
  * @author chenfeng
@@ -24,14 +27,14 @@ public class FileHelper {
     return new File(temporaryDir, filename);
   }
 
-  public static File temporaryDir () {
+  public static File temporaryDir() {
     return temporaryDir;
   }
 
 
   public static File createTempDirectory(String prefix) throws IOException {
     String tempDir = System.getProperty("java.io.tmpdir");
-    File generatedDir = new File(tempDir, prefix + System.nanoTime());
+    File generatedDir = new File(tempDir, prefix + "_" + System.currentTimeMillis());
 
     if (generatedDir.exists() && generatedDir.isDirectory() && generatedDir.canWrite())
       return generatedDir;
@@ -40,6 +43,29 @@ public class FileHelper {
       throw new IOException("Failed to create temp directory " + generatedDir.getName());
 
     return generatedDir;
+  }
+
+  public static List<File> copyResourceToPath(File targetPath, String... resourceNames) throws IOException {
+    List<File> ret = new ArrayList<>();
+    if (targetPath.exists() && targetPath.isDirectory()) {
+      for (String resourceName : resourceNames) {
+        InputStream resource = FileHelper.class.getClassLoader().getResourceAsStream(resourceName);
+        if (resource == null)
+          throw new MissingResourceException("resource not found: " + resourceName, NativeHelper.class.getName(),
+                  resourceName);
+
+        File targetFile = new File(targetPath, resourceName);
+        try {
+          copyStreamToTemp(resource, targetFile);
+          ret.add(targetFile);
+        }
+        catch (IOException e) {
+          safeDeleteFile(targetFile);
+          throw e;
+        }
+      }
+    }
+    return ret;
   }
 
 

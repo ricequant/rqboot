@@ -29,7 +29,7 @@ public class NativeHelper {
     List<File> tempFiles = new ArrayList<>();
     for (var name : names) {
       if (loaded.contains(name))
-        return;
+        continue;
       String fileName = name;
       if (SystemUtils.IS_OS_LINUX)
         fileName = name + ".so";
@@ -62,16 +62,37 @@ public class NativeHelper {
       }
     }
 
-    String libPath = System.getProperty("java.library.path");
-    libPath += File.pathSeparator + FileHelper.temporaryDir().getAbsolutePath();
-    System.setProperty("java.library.path", libPath);
-    for (File f : tempFiles)
-      FileHelper.loadPath(f);
-
-    for (File f : tempFiles)
-      FileHelper.safeDeleteFile(f);
+    try {
+      for (File f : tempFiles)
+        FileHelper.loadPath(f);
+    }
+    catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+    finally {
+      for (File f : tempFiles)
+        FileHelper.safeDeleteFile(f);
+    }
 
     loaded.addAll(Arrays.asList(names));
+  }
+
+  public static List<String> resolveToLibFileNames(String... libNames) {
+    List<String> ret = new ArrayList<>();
+    for (String name : libNames) {
+      String fileName = name;
+      if (SystemUtils.IS_OS_LINUX)
+        fileName = name + ".so";
+      else if (SystemUtils.IS_OS_WINDOWS)
+        fileName = name + ".dll";
+      else if (SystemUtils.IS_OS_MAC_OSX) {
+        fileName = name + ".dylib";
+        if (NativeHelper.class.getClassLoader().getResource(fileName) == null)
+          fileName = name + ".a";
+      }
+      ret.add(fileName);
+    }
+    return ret;
   }
 
 
