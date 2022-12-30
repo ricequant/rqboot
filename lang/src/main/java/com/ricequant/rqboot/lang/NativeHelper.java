@@ -81,8 +81,11 @@ public class NativeHelper {
     List<String> ret = new ArrayList<>();
     for (String name : libNames) {
       String fileName = name;
-      if (SystemUtils.IS_OS_LINUX)
-        fileName = name + ".so";
+      if (SystemUtils.IS_OS_LINUX) {
+        if (!fileName.startsWith("lib"))
+          fileName = "lib" + fileName;
+        fileName = fileName + ".so";
+      }
       else if (SystemUtils.IS_OS_WINDOWS)
         fileName = name + ".dll";
       else if (SystemUtils.IS_OS_MAC_OSX) {
