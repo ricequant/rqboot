@@ -17,7 +17,6 @@ public class DateTimeHelper {
   private static final long cMicroDiff;
 
   static {
-
     long curNano = System.nanoTime();
     for (int i = 0; i < 1000; i++) {
       System.currentTimeMillis();
@@ -158,11 +157,11 @@ public class DateTimeHelper {
    * @return millis from 1970.1.1
    */
   public static long dateToMillis(int date) {
-    int year = (int) (date / 10000);
+    int year = date / 10000;
     date = date % 10000;
 
-    int month = (int) (date / 100);
-    int day = (int) (date % 100);
+    int month = date / 100;
+    int day = date % 100;
 
     LocalDate startDay = LocalDate.of(1970, 1, 1);
     LocalDate endDay = LocalDate.of(year, month, day);
