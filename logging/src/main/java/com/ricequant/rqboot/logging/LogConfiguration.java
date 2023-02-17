@@ -139,6 +139,7 @@ public class LogConfiguration {
       InputStream resource = resources.nextElement().openStream();
       Properties property = new Properties();
       property.load(resource);
+      property.forEach((k, v) -> System.out.println("Log config: " + k + " " + v));
       registerLogLevel(property);
     }
   }
