@@ -156,6 +156,7 @@ public class FileHelper {
 
   public static void copyStreamToTemp(InputStream is, File temp) throws IOException {
     try {
+      System.out.println("Writing stream to path: " + temp.getAbsolutePath());
       Files.copy(is, temp.toPath(), StandardCopyOption.REPLACE_EXISTING);
     }
     catch (IOException e) {
