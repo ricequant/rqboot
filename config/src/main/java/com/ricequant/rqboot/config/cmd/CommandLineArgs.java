@@ -17,31 +17,18 @@ public class CommandLineArgs {
   private final List<IArgument> iArgumentList;
 
   public CommandLineArgs() {
-    this(false);
-  }
-
-  public CommandLineArgs(boolean withDefaultOptions) {
     iOptions = new Options();
     iNameArgumentMap = new HashMap<>();
     iArgumentList = new ArrayList<>();
 
     withArguments(RicemapDefaultArgs.Help);
     withArguments(RicemapDefaultArgs.InstanceName);
-
-    if (withDefaultOptions)
-      initOptions();
   }
 
-  private void initOptions() {
-    withArguments(RicemapDefaultArgs.DevMode);
-    withArguments(RicemapDefaultArgs.ConfigFile);
-    withArguments(RicemapDefaultArgs.TempDir);
-    withArguments(RicemapDefaultArgs.DebugLevel);
-    withArguments(RicemapDefaultArgs.JmxPort);
-    withArguments(RicemapDefaultArgs.JmxHost);
-    withArguments(RicemapDefaultArgs.Cwd);
-    withArguments(RicemapDefaultArgs.IsStatOpen);
-    withArguments(RicemapDefaultArgs.SerializerType);
+  public void withDefaultOptions() {
+    withArguments(RicemapDefaultArgs.DevMode, RicemapDefaultArgs.ConfigFile, RicemapDefaultArgs.TempDir,
+            RicemapDefaultArgs.DebugLevel, RicemapDefaultArgs.JmxPort, RicemapDefaultArgs.JmxHost,
+            RicemapDefaultArgs.Cwd, RicemapDefaultArgs.IsStatOpen, RicemapDefaultArgs.SerializerType);
   }
 
   public void withArguments(IArgument... arguments) {
