@@ -7,9 +7,7 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.MissingResourceException;
+import java.util.*;
 
 /**
  * @author chenfeng
