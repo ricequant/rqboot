@@ -16,6 +16,8 @@ public class DateTimeHelper {
 
   private static final long cMicroDiff;
 
+  private static final ThreadLocal<Calendar> calendarThreadLocal = ThreadLocal.withInitial(Calendar::getInstance);
+
   static {
     long curNano = System.nanoTime();
     for (int i = 0; i < 1000; i++) {
@@ -205,4 +207,13 @@ public class DateTimeHelper {
     System.out.println(currMinuteTimeInt());
   }
 
+  public static int getIntDateFromRQTimestamp(long ts) {
+    Calendar c = calendarThreadLocal.get();
+    c.setTimeInMillis(ts / 1000);
+    int year = c.get(Calendar.YEAR);
+    int month = c.get(Calendar.MONTH) + 1;
+    int day = c.get(Calendar.DAY_OF_MONTH);
+
+    return year * 10000 + month * 100 + day;
+  }
 }
