@@ -31,9 +31,9 @@ public class CommandLineArgs {
             RicemapDefaultArgs.Cwd, RicemapDefaultArgs.IsStatOpen, RicemapDefaultArgs.SerializerType);
   }
 
-  public void withArguments(IArgument... arguments) {
+  public CommandLineArgs withArguments(IArgument... arguments) {
     if (arguments == null)
-      return;
+      return this;
 
     for (IArgument argument : arguments) {
       checkExistence(argument);
@@ -41,10 +41,13 @@ public class CommandLineArgs {
               argument.getDescription());
       iArgumentList.add(argument);
     }
+
+    return this;
   }
 
-  public void withServiceRegistry() {
+  public CommandLineArgs withServiceRegistry() {
     withArguments(RicemapDefaultArgs.ServiceRegistry);
+    return this;
   }
 
   Options getOptions() {
