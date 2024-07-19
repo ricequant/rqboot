@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.TimeZone;
 
 /**
  * @author kain
@@ -16,7 +17,11 @@ public class DateTimeHelper {
 
   private static final long cMicroDiff;
 
-  private static final ThreadLocal<Calendar> calendarThreadLocal = ThreadLocal.withInitial(Calendar::getInstance);
+  private final static ThreadLocal<Calendar> CALENDAR = ThreadLocal.withInitial(() -> {
+    Calendar c = Calendar.getInstance();
+    c.setTimeZone(TimeZone.getTimeZone("Asia/Shanghai"));
+    return c;
+  });
 
   static {
     long curNano = System.nanoTime();
@@ -208,12 +213,126 @@ public class DateTimeHelper {
   }
 
   public static int getIntDateFromRQTimestamp(long ts) {
-    Calendar c = calendarThreadLocal.get();
+    Calendar c = CALENDAR.get();
     c.setTimeInMillis(ts / 1000);
     int year = c.get(Calendar.YEAR);
     int month = c.get(Calendar.MONTH) + 1;
     int day = c.get(Calendar.DAY_OF_MONTH);
 
     return year * 10000 + month * 100 + day;
+  }
+
+  public static int countMinutes(long datetime) {
+    int hours = (int) ((datetime % 1000000000) / 10000000);
+    int minutes = (int) ((datetime % 10000000) / 100000);
+
+    return hours * 60 + minutes;
+  }
+
+  public static int minutesCountToTime(int minutesCount) {
+    return minutesCount / 60 * 100 + minutesCount % 60;
+  }
+
+  public static int getSeconds(long datetime) {
+    return (int) (datetime % 100000) / 1000;
+  }
+
+  public static long toRQEpochTimestamp(long readableTimestamp) {
+    if (readableTimestamp == 0)
+      return 0;
+
+    if (readableTimestamp < 9999999999999999L)
+      readableTimestamp *= 10;
+
+    CALENDAR.get().clear();
+    // YYYYMMDDHHMMSSsss
+    int year = (int) (readableTimestamp / 10000000000000L);
+    int month = (int) (readableTimestamp % 10000000000000L / 100000000000L);
+    int day = (int) (readableTimestamp % 100000000000L / 1000000000L);
+    int hour = (int) (readableTimestamp % 1000000000L / 10000000L);
+    int min = (int) (readableTimestamp % 10000000L / 100000L);
+    int sec = (int) (readableTimestamp % 100000L / 1000L);
+    int milli = (int) (readableTimestamp % 1000L);
+
+    CALENDAR.get().set(year, month - 1, day, hour, min, sec);
+    long ret = (CALENDAR.get().getTimeInMillis() + milli) * 1000;
+    if (ret < 0) {
+      throw new IllegalArgumentException("input timestamp is not in xtp format: " + readableTimestamp);
+    }
+    return ret;
+  }
+
+  public static long getTime(long datetime) {
+    return datetime % 1000000000;
+  }
+
+  public static int getDate(long datetime) {
+    return (int) (datetime / 1000000000L);
+  }
+
+
+  public static long toReadableTimestamp(long rqTimestamp) {
+    long ret = rqTimestamp / 1000;
+    Calendar c = CALENDAR.get();
+    c.setTimeInMillis(ret);
+    return c.get(Calendar.YEAR) * 10000000000000L + (1 + c.get(Calendar.MONTH)) * 100000000000L
+            + c.get(Calendar.DAY_OF_MONTH) * 1000000000L + c.get(Calendar.HOUR_OF_DAY) * 10000000L
+            + c.get(Calendar.MINUTE) * 100000 + c.get(Calendar.SECOND) * 1000 + c.get(Calendar.MILLISECOND);
+  }
+
+  public static long stripDateAndCountMicros(long timestamp) {
+    return microCounts(timestamp % 1000000000L * 1000);
+  }
+
+  public static long microCounts(long timestamp) {
+    long seconds = timestamp / (1000 * 1000);
+    long sec = seconds % 100;
+    long min = seconds / 100 % 100;
+    long hour = seconds / 10000;
+
+    return (hour * 3600 + min * 60 + sec) * 1000 * 1000 + timestamp % (1000 * 1000);
+  }
+
+  public static long secondCounts(int intTime) {
+    int min = intTime / 100 % 100;
+    int hour = intTime / 10000;
+    return hour * 3600 + min * 60 + intTime % 100;
+  }
+
+  public static int rqEpochToDate(long rqEpoch) {
+    return getDate(toReadableTimestamp(rqEpoch));
+  }
+
+
+  public static long prependDateAndGetExchangeTimestamp(int date, long currentMicros) {
+    long millis = currentMicros / 1000;
+    long seconds = millis / 1000 % 60;
+    long minutes = millis / 1000 / 60 % 60;
+    long hours = millis / 1000 / 60 / 60;
+    millis = millis % 1000;
+    return hours * 10000000 + minutes * 100000 + seconds * 1000 + millis + date * 1000000000L;
+  }
+
+  public static long dateToEpoch(int date) {
+    Calendar c = Calendar.getInstance();
+    int year = date / 10000;
+    int month = date / 100 % 100;
+    int day = date % 100;
+    c.clear();
+    c.set(Calendar.YEAR, year);
+    c.set(Calendar.MONTH, month - 1);
+    c.set(Calendar.DAY_OF_MONTH, day);
+    return c.getTimeInMillis();
+  }
+
+  public static long toRQTimestamp(int year, int month, int day, int hour, int minute, int second, int milli) {
+    CALENDAR.get().set(year, month - 1, day, hour, minute, second);
+    long ret = (CALENDAR.get().getTimeInMillis() + milli) * 1000;
+    if (ret < 0) {
+      throw new IllegalArgumentException(
+              "input is unreasonable: " + year + "-" + month + "-" + day + " " + hour + ":" + minute + ":" + second
+                      + "." + milli);
+    }
+    return ret;
   }
 }
