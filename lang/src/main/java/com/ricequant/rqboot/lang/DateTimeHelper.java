@@ -114,8 +114,16 @@ public class DateTimeHelper {
   }
 
   public static int currTimeInt() {
-    Calendar now = Calendar.getInstance();
-    return (now.get(Calendar.HOUR_OF_DAY) * 10000 + now.get(Calendar.MINUTE) * 100 + now.get(Calendar.SECOND)) * 1000;
+    Calendar now = CALENDAR.get();
+    now.setTimeInMillis(System.currentTimeMillis());
+    return currTimeInt(0);
+  }
+
+  public static int currTimeInt(int offset) {
+    Calendar cal = CALENDAR.get();
+    cal.setTimeInMillis(System.currentTimeMillis());
+    cal.add(Calendar.SECOND, offset);
+    return cal.get(Calendar.HOUR_OF_DAY) * 10000 + cal.get(Calendar.MINUTE) * 100 + cal.get(Calendar.SECOND);
   }
 
   public static int currMinuteTimeInt() {
