@@ -75,10 +75,9 @@ public class DateTimeHelper {
   }
 
   public static String intTimeToString(int time) {
-    int totalSeconds = time / 1000;
-    int seconds = totalSeconds % 100;
-    int minutes = totalSeconds / 100 % 100;
-    int hours = totalSeconds / 10000;
+    int seconds = time % 100;
+    int minutes = time / 100 % 100;
+    int hours = time / 10000;
 
     StringBuilder sb = new StringBuilder();
 
