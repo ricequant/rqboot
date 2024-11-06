@@ -3,6 +3,7 @@ package com.ricequant.rqboot.lang;
 import org.joda.time.DateTime;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Calendar;
 import java.util.Date;
@@ -310,6 +311,15 @@ public class DateTimeHelper {
     return getDate(toReadableTimestamp(rqEpoch));
   }
 
+  public static LocalDateTime dateTimeLongToLocalDateTime(long datetime) {
+    int year = (int) (datetime / 10000000000000L);
+    int month = (int) (datetime / 100000000000L % 100) - 1;
+    int day = (int) (datetime / 1000000000L % 100);
+    int hour = (int) (datetime / 10000000L % 100);
+    int minute = (int) (datetime / 100000L % 100);
+    int second = (int) (datetime / 1000L % 100);
+    return LocalDateTime.of(year, month, day, hour, minute, second);
+  }
 
   public static long prependDateAndGetExchangeTimestamp(int date, long currentMicros) {
     long millis = currentMicros / 1000;
