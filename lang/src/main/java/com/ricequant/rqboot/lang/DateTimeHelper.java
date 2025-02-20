@@ -39,6 +39,10 @@ public class DateTimeHelper {
     return cBeginMicro + (System.nanoTime() / 1000 - cMicroDiff);
   }
 
+  public static long getCurrentReadable() {
+    return toReadableTimestamp(getCurrentMicros());
+  }
+
   public static boolean isDateFormatValid(int dateTime) {
     try {
       toDateTime(dateTime);
@@ -265,7 +269,7 @@ public class DateTimeHelper {
     CALENDAR.get().set(year, month - 1, day, hour, min, sec);
     long ret = (CALENDAR.get().getTimeInMillis() + milli) * 1000;
     if (ret < 0) {
-      throw new IllegalArgumentException("input timestamp is not in xtp format: " + readableTimestamp);
+      throw new IllegalArgumentException("input timestamp is not in readable format: " + readableTimestamp);
     }
     return ret;
   }
