@@ -292,8 +292,12 @@ public class DateTimeHelper {
             + c.get(Calendar.MINUTE) * 100000 + c.get(Calendar.SECOND) * 1000 + c.get(Calendar.MILLISECOND);
   }
 
-  public static long stripDateAndCountMicros(long timestamp) {
-    return microCounts(timestamp % 1000000000L * 1000);
+  public static long stripDateAndCountMicros(long readableTimestamp) {
+    return microCounts(stripDate(readableTimestamp) * 1000);
+  }
+
+  public static long stripDate(long readableTimestamp) {
+    return readableTimestamp % 1000000000L;
   }
 
   public static long microCounts(long timestamp) {
