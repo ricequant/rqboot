@@ -11,8 +11,6 @@ import java.util.List;
  */
 public class CommandLineParser {
 
-  private Logger iLogger = LoggerFactory.getLogger(getClass());
-
   private String iBanner;
 
   public CommandLineParser(String appName) {
@@ -20,7 +18,7 @@ public class CommandLineParser {
   }
 
   public OptionMap parse(String[] args, CommandLineArgs definedArgs) {
-    iLogger.info("Parsing command...");
+    System.out.println("Parsing command...");
 
     OptionMap optionMap = new OptionMap();
     GnuParser parser = new GnuParser();
@@ -43,13 +41,14 @@ public class CommandLineParser {
 
       List<String> validationFailReasons = definedArgs.validate(line);
       if (validationFailReasons.size() != 0) {
-        iLogger.error("Command line contains illegal arguments.");
-        validationFailReasons.forEach(iLogger::error);
+        System.err.println("Command line contains illegal arguments.");
+        validationFailReasons.forEach(System.err::println);
         return null;
       }
     }
     catch (ParseException e) {
-      iLogger.error("Error parsing arguments", e);
+      System.err.println("Error parsing arguments");
+      e.printStackTrace();
       displayHelp(definedArgs.getOptions());
       System.exit(0);
     }
@@ -58,7 +57,7 @@ public class CommandLineParser {
 
   private void displayHelp(Options options) {
     HelpFormatter formatter = new HelpFormatter();
-    LogPrintWriter lpw = new LogPrintWriter(iLogger);
+    LogPrintWriter lpw = new LogPrintWriter(LoggerFactory.getLogger(getClass()));
     try {
       formatter.printHelp(lpw, 120, iBanner, iBanner, options, HelpFormatter.DEFAULT_LEFT_PAD,
               HelpFormatter.DEFAULT_DESC_PAD, null, true);
