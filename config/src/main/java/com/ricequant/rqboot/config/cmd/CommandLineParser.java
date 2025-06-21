@@ -1,7 +1,6 @@
 package com.ricequant.rqboot.config.cmd;
 
 import org.apache.commons.cli.*;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
@@ -11,8 +10,6 @@ import java.util.List;
  */
 public class CommandLineParser {
 
-  private final Logger logger = LoggerFactory.getLogger(getClass());
-
   private final String banner;
 
   public CommandLineParser(String appName) {
@@ -20,7 +17,7 @@ public class CommandLineParser {
   }
 
   public OptionMap parse(String[] args, CommandLineArgs definedArgs) {
-    logger.info("Parsing command...");
+    System.out.println("Parsing command...");
 
     OptionMap optionMap = new OptionMap();
     DefaultParser parser = new DefaultParser();
@@ -42,14 +39,15 @@ public class CommandLineParser {
       }
 
       List<String> validationFailReasons = definedArgs.validate(line);
-      if (!validationFailReasons.isEmpty()) {
-        logger.error("Command line contains illegal arguments.");
-        validationFailReasons.forEach(logger::error);
+      if (validationFailReasons.size() != 0) {
+        System.err.println("Command line contains illegal arguments.");
+        validationFailReasons.forEach(System.err::println);
         return null;
       }
     }
     catch (ParseException e) {
-      logger.error("Error parsing arguments", e);
+      System.err.println("Error parsing arguments");
+      e.printStackTrace();
       displayHelp(definedArgs.getOptions());
       System.exit(0);
     }
@@ -58,7 +56,7 @@ public class CommandLineParser {
 
   private void displayHelp(Options options) {
     HelpFormatter formatter = new HelpFormatter();
-    LogPrintWriter lpw = new LogPrintWriter(logger);
+    LogPrintWriter lpw = new LogPrintWriter(LoggerFactory.getLogger(getClass()));
     try {
       formatter.printHelp(lpw, 120, banner, banner, options, HelpFormatter.DEFAULT_LEFT_PAD,
               HelpFormatter.DEFAULT_DESC_PAD, null, true);

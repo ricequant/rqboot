@@ -11,8 +11,6 @@ import com.ricequant.rqboot.jmx.server.JmxServerException;
 import com.ricequant.rqboot.lang.ClassLoadHelper;
 import com.ricequant.rqboot.logging.LogConfiguration;
 import com.ricequant.rqboot.logging.LogLevelJmx;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.InputStream;
@@ -34,8 +32,6 @@ public class RicequantMain implements IDaemonCallback {
   static {
     Security.setProperty("jdk.tls.disabledAlgorithms", "");
   }
-
-  private final Logger iLogger = LoggerFactory.getLogger(getClass());
 
   private static final String cApplicationClassKey = "ApplicationClass";
 
@@ -116,7 +112,7 @@ public class RicequantMain implements IDaemonCallback {
 
   @Override
   public void init(String[] args) {
-    iLogger.info("Looking for implementation of IApplication...");
+    System.out.println("Looking for implementation of IApplication...");
 
     iApplication = getApplication();
 
@@ -137,12 +133,12 @@ public class RicequantMain implements IDaemonCallback {
       }
 
       try {
-        iApplication = apps.get(0).getDeclaredConstructor().newInstance();
+        iApplication = apps.getFirst().getDeclaredConstructor().newInstance();
       }
       catch (Throwable e) {
         throw new RuntimeException("Error instantiating application, must have default constructor available", e);
       }
-      iLogger.info("Found: " + apps.get(0).getName());
+      System.out.println("Found: " + apps.getFirst().getName());
     }
 
     CommandLineParser cp = new CommandLineParser(iApplication.getAppName());
@@ -157,7 +153,8 @@ public class RicequantMain implements IDaemonCallback {
 
     changeWorkingDir(optionMap);
 
-    LogConfiguration logConfig = new LogConfiguration(optionMap.getValue(RicemapDefaultArgs.DebugLevel));
+    LogConfiguration logConfig = new LogConfiguration(optionMap.getValue(RicemapDefaultArgs.DebugLevel),
+            optionMap.getValue(RicemapDefaultArgs.RedirectConsole));
 
     try {
       iApplication.init(optionMap, args);
