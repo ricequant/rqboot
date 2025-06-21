@@ -16,19 +16,12 @@ public class OptionMap {
     iOptMap = new ConcurrentHashMap<>();
   }
 
-  void put(String opt, String[] values) {
-    Set<String> set = iOptMap.get(opt);
-    if (set == null) {
-      set = new LinkedHashSet<>();
-      iOptMap.put(opt, set);
-    }
-
-    for (String newValue : values) {
-      set.add(newValue);
-    }
+  public void put(String opt, String[] values) {
+    Set<String> set = iOptMap.computeIfAbsent(opt, k -> new LinkedHashSet<>());
+    set.addAll(Arrays.asList(values));
   }
 
-  void put(String opt, String value) {
+  public void put(String opt, String value) {
     put(opt, new String[]{value});
   }
 

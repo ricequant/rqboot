@@ -11,19 +11,19 @@ import java.util.List;
  */
 public class CommandLineParser {
 
-  private Logger iLogger = LoggerFactory.getLogger(getClass());
+  private final Logger logger = LoggerFactory.getLogger(getClass());
 
-  private String iBanner;
+  private final String banner;
 
   public CommandLineParser(String appName) {
-    iBanner = appName;
+    banner = appName;
   }
 
   public OptionMap parse(String[] args, CommandLineArgs definedArgs) {
-    iLogger.info("Parsing command...");
+    logger.info("Parsing command...");
 
     OptionMap optionMap = new OptionMap();
-    GnuParser parser = new GnuParser();
+    DefaultParser parser = new DefaultParser();
 
     try {
       CommandLine line = parser.parse(definedArgs.getOptions(), args);
@@ -42,14 +42,14 @@ public class CommandLineParser {
       }
 
       List<String> validationFailReasons = definedArgs.validate(line);
-      if (validationFailReasons.size() != 0) {
-        iLogger.error("Command line contains illegal arguments.");
-        validationFailReasons.forEach(iLogger::error);
+      if (!validationFailReasons.isEmpty()) {
+        logger.error("Command line contains illegal arguments.");
+        validationFailReasons.forEach(logger::error);
         return null;
       }
     }
     catch (ParseException e) {
-      iLogger.error("Error parsing arguments", e);
+      logger.error("Error parsing arguments", e);
       displayHelp(definedArgs.getOptions());
       System.exit(0);
     }
@@ -58,9 +58,9 @@ public class CommandLineParser {
 
   private void displayHelp(Options options) {
     HelpFormatter formatter = new HelpFormatter();
-    LogPrintWriter lpw = new LogPrintWriter(iLogger);
+    LogPrintWriter lpw = new LogPrintWriter(logger);
     try {
-      formatter.printHelp(lpw, 120, iBanner, iBanner, options, HelpFormatter.DEFAULT_LEFT_PAD,
+      formatter.printHelp(lpw, 120, banner, banner, options, HelpFormatter.DEFAULT_LEFT_PAD,
               HelpFormatter.DEFAULT_DESC_PAD, null, true);
     }
     finally {
