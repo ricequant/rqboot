@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -14,6 +15,8 @@ public abstract class AbstractGetOrCreateFactory<KeyType, ObjectType> {
 
   protected Map<KeyType, ObjectType> iMap;
 
+  private final ReentrantLock lock = new ReentrantLock();
+
   public AbstractGetOrCreateFactory() {
     iMap = new ConcurrentHashMap<>();
   }
@@ -23,66 +26,132 @@ public abstract class AbstractGetOrCreateFactory<KeyType, ObjectType> {
   }
 
   public Set<KeyType> keySet() {
-    return iMap.keySet();
+    try {
+      lock.lock();
+      return iMap.keySet();
+    }
+    finally {
+      lock.unlock();
+    }
   }
 
   public ObjectType get(KeyType key) {
-    return iMap.get(key);
+    try {
+      lock.lock();
+      return iMap.get(key);
+    }
+    finally {
+      lock.unlock();
+    }
+  }
+
+  public void lock() {
+    lock.lock();
+  }
+
+  public void unlock() {
+    lock.unlock();
   }
 
   public final ObjectType put(KeyType key, ObjectType object) {
-    synchronized (iMap) {
+    try {
+      lock.lock();
       return iMap.put(key, object);
+    }
+    finally {
+      lock.unlock();
     }
   }
 
   public final ObjectType remove(KeyType key) {
-    synchronized (iMap) {
+    try {
+      lock.lock();
       return iMap.remove(key);
+    }
+    finally {
+      lock.unlock();
     }
   }
 
   public final boolean contains(KeyType key) {
-    synchronized (iMap) {
+    try {
+      lock.lock();
       return iMap.containsKey(key);
+    }
+    finally {
+      lock.unlock();
     }
   }
 
   public void forAllValues(Consumer<ObjectType> consumer) {
-    synchronized (iMap) {
+    try {
+      lock.lock();
       iMap.values().forEach(consumer::accept);
+    }
+    finally {
+      lock.unlock();
     }
   }
 
   public void forAllKeys(Consumer<KeyType> consumer) {
-    synchronized (iMap) {
+    try {
+      lock.lock();
       iMap.keySet().forEach(consumer);
+    }
+    finally {
+      lock.unlock();
     }
   }
 
   public int size() {
-    return iMap.size();
+    try {
+      lock.lock();
+      return iMap.size();
+    }
+    finally {
+      lock.unlock();
+    }
   }
 
   public void forAllEntries(BiConsumer<KeyType, ObjectType> consumer) {
-    synchronized (iMap) {
+    try {
+      lock.lock();
       iMap.entrySet().forEach((entry -> {
         consumer.accept(entry.getKey(), entry.getValue());
       }));
     }
+    finally {
+      lock.unlock();
+    }
   }
 
   public Set<Map.Entry<KeyType, ObjectType>> entries() {
-    return iMap.entrySet();
+    try {
+      lock.lock();
+      return iMap.entrySet();
+    }
+    finally {
+      lock.unlock();
+    }
   }
 
   public final void clear() {
-    synchronized (iMap) {
+    try {
+      lock.lock();
       iMap.clear();
+    }
+    finally {
+      lock.unlock();
     }
   }
 
   public Collection<ObjectType> values() {
-    return iMap.values();
+    try {
+      lock.lock();
+      return iMap.values();
+    }
+    finally {
+      lock.unlock();
+    }
   }
 }

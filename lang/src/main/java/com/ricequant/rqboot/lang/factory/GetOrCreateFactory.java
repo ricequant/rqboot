@@ -22,13 +22,13 @@ public class GetOrCreateFactory<KeyType, ObjectType> extends AbstractGetOrCreate
   public final ObjectType getOrCreate(KeyType key) {
     ObjectType value = iMap.get(key);
     if (value == null) {
-      synchronized (iMap) {
-        value = iMap.get(key);
-        if (value == null) {
-          value = iCreator.apply(key);
-          iMap.put(key, value);
-        }
+      lock();
+      value = iMap.get(key);
+      if (value == null) {
+        value = iCreator.apply(key);
+        iMap.put(key, value);
       }
+      unlock();
     }
 
     return value;

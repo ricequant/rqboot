@@ -17,13 +17,13 @@ public final class OneParameterGetOrCreateFactory<KeyType, ObjectType, Parameter
   public final ObjectType getOrCreate(KeyType key, ParameterType param) {
     ObjectType value = iMap.get(key);
     if (value == null) {
-      synchronized (iMap) {
-        value = iMap.get(key);
-        if (value == null) {
-          value = iCreator.apply(key, param);
-          iMap.put(key, value);
-        }
+      lock();
+      value = iMap.get(key);
+      if (value == null) {
+        value = iCreator.apply(key, param);
+        iMap.put(key, value);
       }
+      unlock();
     }
 
     return value;

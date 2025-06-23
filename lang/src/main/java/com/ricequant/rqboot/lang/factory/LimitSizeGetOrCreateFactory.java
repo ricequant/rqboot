@@ -25,28 +25,28 @@ public final class LimitSizeGetOrCreateFactory<KeyType, ObjectType>
   public final ObjectType getOrCreate(KeyType key) {
     ObjectType value = iMap.get(key);
     if (value == null) {
-      synchronized (iMap) {
-        value = iMap.get(key);
-        if (value == null) {
-          if (iKeyArray.size() >= iCapacity) {
-            remove(iKeyArray.getFirst());
-            iKeyArray.removeFirst();
-          }
-
-          value = iCreator.apply(key);
-          iMap.put(key, value);
-          iKeyArray.addLast(key);
+      lock();
+      value = iMap.get(key);
+      if (value == null) {
+        if (iKeyArray.size() >= iCapacity) {
+          remove(iKeyArray.getFirst());
+          iKeyArray.removeFirst();
         }
+
+        value = iCreator.apply(key);
+        iMap.put(key, value);
+        iKeyArray.addLast(key);
       }
+      unlock();
     }
 
     return value;
   }
 
   public final void clearAll() {
-    synchronized (iMap) {
-      iMap.clear();
-      iKeyArray.clear();
-    }
+    lock();
+    iMap.clear();
+    iKeyArray.clear();
+    unlock();
   }
 }
