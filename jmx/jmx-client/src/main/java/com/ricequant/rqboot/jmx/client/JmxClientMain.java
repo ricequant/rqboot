@@ -31,7 +31,7 @@ public class JmxClientMain {
 
   public void start(String host, int port) throws IOException {
     JMXServiceURL url =
-            new JMXServiceURL("service:jmx:rmi:///jndi/rmi://" + host + ":" + String.valueOf(port) + "/jmxrmi");
+            new JMXServiceURL("service:jmx:rmi:///jndi/rmi://" + host + ":" + port + "/jmxrmi");
 
     start(url);
   }

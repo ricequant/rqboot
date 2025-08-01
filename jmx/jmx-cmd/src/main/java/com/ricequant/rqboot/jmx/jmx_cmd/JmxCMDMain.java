@@ -38,6 +38,12 @@ public class JmxCMDMain {
       commandOffset = 2;
       client.start(host, port);
     }
+    else if (firstArg.equals("-n")) {
+      String processName = args[1];
+      String jmxURL = getJmxURLFromTempDir(processName);
+      commandOffset = 2;
+      client.start(new JMXServiceURL(jmxURL));
+    }
     else {
       String rqConfigPath = "/etc/rq/rq.config";
       if (firstArg.equals("-c")) {
@@ -93,6 +99,16 @@ public class JmxCMDMain {
     catch (IOException e) {
       return null;
     }
+  }
+
+  private static String getJmxURLFromTempDir(String processName) throws IOException {
+    File tmpFile = File.createTempFile("test", null);
+    String systemTmpFilePath = tmpFile.getParentFile().getAbsolutePath();
+    if (!tmpFile.delete())
+      System.err.println("Unable to delete temp file: " + tmpFile);
+
+    File jmxFile = new File(systemTmpFilePath + File.separator + processName + ".jmx");
+    return FileUtils.readFileToString(jmxFile);
   }
 
   private static String parseArgValue(String argsString, String argName) {
