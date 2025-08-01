@@ -86,6 +86,14 @@ public class VersionReporter {
     private List<LibraryInfo> discoverFromClasspath() {
         List<LibraryInfo> discovered = new ArrayList<>();
         
+        // Check if we're running from a shaded JAR first
+        LibraryInfo shadedJarInfo = detectShadedJar();
+        if (shadedJarInfo != null) {
+            discovered.add(shadedJarInfo);
+            return discovered;
+        }
+        
+        // Normal classpath scanning for non-shaded environments
         String classpath = System.getProperty("java.class.path");
         if (classpath != null) {
             for (String path : classpath.split(System.getProperty("path.separator"))) {
@@ -98,7 +106,7 @@ public class VersionReporter {
             }
         }
         
-        // Add essential non-ricequant libraries
+        // Add essential non-ricequant libraries only if not shaded
         addEssentialLibraries(discovered);
         
         return discovered;
@@ -284,7 +292,58 @@ public class VersionReporter {
     }
     
     /**
+     * Detect if we're running from a shaded JAR and return its information
+     */
+    private LibraryInfo detectShadedJar() {
+        try {
+            Class<?> clazz = VersionReporter.class;
+            URL location = clazz.getProtectionDomain().getCodeSource().getLocation();
+            String path = location.getPath();
+            
+            if (path.endsWith(".jar")) {
+                try (JarFile jar = new JarFile(path)) {
+                    Manifest manifest = jar.getManifest();
+                    if (manifest != null) {
+                        Attributes attrs = manifest.getMainAttributes();
+                        
+                        // Check if this is a ricequant shaded JAR
+                        String groupId = attrs.getValue("GroupId");
+                        String vendor = attrs.getValue("Implementation-Vendor");
+                        String mainClass = attrs.getValue("Main-Class");
+                        
+                        boolean isRicequantShaded = (groupId != null && groupId.contains("ricequant")) ||
+                                                   (vendor != null && vendor.contains("RiceQuant")) ||
+                                                   (mainClass != null && mainClass.contains("ricequant")) ||
+                                                   path.contains("ricequant");
+                        
+                        if (isRicequantShaded) {
+                            // Check if external libraries are also in this JAR (indicating shading)
+                            boolean hasSLF4J = jar.getEntry("org/slf4j/Logger.class") != null;
+                            boolean hasVertx = jar.getEntry("io/vertx/core/Vertx.class") != null;
+                            
+                            if (hasSLF4J || hasVertx) {
+                                // This is a shaded JAR - return main project info
+                                String libraryName = getLibraryNameFromManifest(attrs, path);
+                                String version = getVersionFromManifest(attrs);
+                                String buildTime = getBuildTimeFromManifest(attrs);
+                                String gitInfo = getGitInfoFromManifest(attrs);
+                                
+                                return new LibraryInfo(libraryName, version, buildTime, gitInfo, path);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.debug("Error detecting shaded JAR: {}", e.getMessage());
+        }
+        
+        return null;
+    }
+    
+    /**
      * Add essential non-ricequant libraries that should always be reported
+     * (only called for non-shaded environments)
      */
     private void addEssentialLibraries(List<LibraryInfo> discovered) {
         String[] essentialClasses = {
@@ -294,14 +353,27 @@ public class VersionReporter {
         
         for (String className : essentialClasses) {
             LibraryVersion version = getLibraryVersion(className);
-            LibraryInfo info = new LibraryInfo(
-                version.name, 
-                version.version, 
-                version.buildTime,
-                null,  // Git info not available for external libraries
-                version.jarLocation
-            );
-            discovered.add(info);
+            
+            // Skip if this library comes from the same JAR as an already discovered library
+            // (this handles edge cases where shading detection might miss some cases)
+            boolean alreadyReported = false;
+            for (LibraryInfo existing : discovered) {
+                if (existing.jarPath != null && existing.jarPath.equals(version.jarLocation)) {
+                    alreadyReported = true;
+                    break;
+                }
+            }
+            
+            if (!alreadyReported) {
+                LibraryInfo info = new LibraryInfo(
+                    version.name, 
+                    version.version, 
+                    version.buildTime,
+                    null,  // Git info not available for external libraries
+                    version.jarLocation
+                );
+                discovered.add(info);
+            }
         }
     }
     
