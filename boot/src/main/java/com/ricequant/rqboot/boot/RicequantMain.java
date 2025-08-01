@@ -59,6 +59,7 @@ public class RicequantMain implements IDaemonCallback {
       if ("-v".equals(arg) || "--version".equals(arg)) {
 
         System.out.println(RicequantMain.class.getPackage().getSpecificationVersion());
+        VersionReporter.printVersionInfo();
 
         return true;
       }
@@ -112,6 +113,7 @@ public class RicequantMain implements IDaemonCallback {
 
   @Override
   public void init(String[] args) {
+    VersionReporter.printVersionInfo();
     System.out.println("Looking for implementation of IApplication...");
 
     iApplication = getApplication();
@@ -122,7 +124,7 @@ public class RicequantMain implements IDaemonCallback {
     if (iApplication == null) {
       List<Class<IApplication>> apps = findAppImplementation();
 
-      if (apps.size() == 0) {
+      if (apps.isEmpty()) {
         throw new RuntimeException("Cannot find any application implementations to load");
       }
 
