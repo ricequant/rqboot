@@ -71,12 +71,18 @@ public class DateTimeHelper {
     return year * 10000 + month * 100 + day;
   }
 
-  public static String intDateToString(int date) {
+  public static String intDateToString(int date, String separator) {
     int day = date % 100;
     int month = date / 100 % 100;
     int year = date / 10000;
 
-    return year + "/" + month + "/" + day;
+    return year + separator + month + separator + day;
+  }
+
+  public static String toPythonDateTime(int date, int time) {
+    String dateStr = DateTimeHelper.intDateToString(date, "-");
+    String timeStr = DateTimeHelper.intTimeToString(time);
+    return dateStr + " " + timeStr;
   }
 
   public static String intTimeToString(int time) {
