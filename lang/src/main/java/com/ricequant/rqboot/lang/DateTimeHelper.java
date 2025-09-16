@@ -4,6 +4,7 @@ import org.joda.time.DateTime;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Calendar;
 import java.util.Date;
@@ -365,5 +366,39 @@ public class DateTimeHelper {
                       + "." + milli);
     }
     return ret;
+  }
+
+  public static long toEpochSecond(int readableDate, int readableTime) {
+    int year = readableDate / 10000;
+    int month = (readableDate % 10000) / 100;
+    int day = readableDate % 100;
+
+    int hour = readableTime / 10000;
+    int minute = (readableTime % 10000) / 100;
+    int second = readableTime % 100;
+
+    LocalDateTime dateTime = LocalDateTime.of(year, month, day, hour, minute, second);
+    return dateTime.atZone(ZoneId.systemDefault()).toEpochSecond();
+  }
+
+  /**
+   * Converts a date and time to a 17-digit integer format expected by the API.
+   *
+   * @param readableDate The date in format YYYYMMDD
+   * @param readableTime The time in format HHMMSS
+   * @return The 17-digit integer representing the datetime
+   */
+  public static long convertTimeToInt17(int readableDate, int readableTime) {
+    int year = readableDate / 10000;
+    int month = (readableDate % 10000) / 100;
+    int day = readableDate % 100;
+
+    int hour = readableTime / 10000;
+    int minute = (readableTime % 10000) / 100;
+    int second = readableTime % 100;
+
+    // Format: YYYYMMDDHHMMSSmmm (17 digits)
+    return year * 10000000000000L + month * 100000000000L + day * 1000000000L + hour * 10000000L + minute * 100000L
+            + second * 1000L;
   }
 }
