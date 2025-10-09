@@ -1,5 +1,6 @@
 package com.ricequant.rqboot.lang;
 
+import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 
 import java.time.LocalDate;
@@ -305,6 +306,28 @@ public class DateTimeHelper {
 
   public static long stripDate(long readableTimestamp) {
     return readableTimestamp % 1000000000L;
+  }
+
+  /**
+   * from yyyy-mm-dd hh:mm:ss to epoch timestamp based on micro counts.
+   *
+   * @param datetime
+   * @return
+   */
+  public static long toRQTimestamp(String datetime) {
+    String[] split = StringUtils.split(datetime, " ");
+    String[] dates = StringUtils.split(split[0], "-");
+    String[] times = StringUtils.split(split[1], ":");
+
+    int year = Integer.parseInt(dates[0]);
+    int month = Integer.parseInt(dates[1]);
+    int day = Integer.parseInt(dates[2]);
+
+    int hour = Integer.parseInt(times[0]);
+    int min = Integer.parseInt(times[1]);
+    int sec = Integer.parseInt(times[2]);
+
+    return toRQTimestamp(year, month, day, hour, min, sec, 0);
   }
 
   public static long microCounts(long timestamp) {
