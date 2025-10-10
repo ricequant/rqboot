@@ -424,4 +424,8 @@ public class DateTimeHelper {
     return year * 10000000000000L + month * 100000000000L + day * 1000000000L + hour * 10000000L + minute * 100000L
             + second * 1000L;
   }
+
+  public static boolean isToday(long timestamp) {
+    return rqEpochToDate(timestamp) == currDateInt();
+  }
 }
