@@ -425,7 +425,7 @@ public class DateTimeHelper {
             + second * 1000L;
   }
 
-  public static boolean isToday(long timestamp) {
-    return rqEpochToDate(timestamp) == currDateInt();
+  public static boolean isToday(long rqTimestamp) {
+    return rqEpochToDate(rqTimestamp) == currDateInt();
   }
 }
