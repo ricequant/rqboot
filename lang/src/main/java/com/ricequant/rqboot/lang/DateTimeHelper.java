@@ -145,7 +145,7 @@ public class DateTimeHelper {
   /**
    * Formats an integer date as a string with custom separator.
    *
-   * @param date date in YYYYMMDD format (e.g., 20231015)
+   * @param date      date in YYYYMMDD format (e.g., 20231015)
    * @param separator separator character(s) to use (e.g., "-", "/", ".")
    * @return formatted date string (e.g., "2023-10-15" with separator "-")
    */
@@ -368,7 +368,8 @@ public class DateTimeHelper {
   /**
    * Converts an integer time to milliseconds (duration from midnight).
    *
-   * @param time Market data entry's time in HHMMSSmmm format (e.g., 143020500), where HH=0-23, MM=00-59, SS=00-59, mmm=000-999
+   * @param time Market data entry's time in HHMMSSmmm format (e.g., 143020500), where HH=0-23, MM=00-59, SS=00-59,
+   *             mmm=000-999
    * @return milliseconds elapsed from midnight (not epoch timestamp)
    */
   public static long timeToMillis(int time) {
@@ -388,7 +389,8 @@ public class DateTimeHelper {
    * Combines integer date and time into a Unix timestamp (milliseconds since epoch).
    *
    * @param date Market date in YYYYMMDD format (e.g., 20231015), where YYYY=0000-9999, MM=01-12, DD=01-31
-   * @param time Market data entry's time in HHMMSSmmm format (e.g., 143020500), where HH=0-23, MM=00-59, SS=00-59, mmm=000-999
+   * @param time Market data entry's time in HHMMSSmmm format (e.g., 143020500), where HH=0-23, MM=00-59, SS=00-59,
+   *             mmm=000-999
    * @return Unix timestamp in milliseconds since epoch
    */
   public static long toLinuxTimestamp(int date, int time) {
@@ -641,7 +643,7 @@ public class DateTimeHelper {
    *
    * <p>Combines a date integer with a microsecond time count to produce a readable timestamp.
    *
-   * @param date date in YYYYMMDD format (e.g., 20231015)
+   * @param date          date in YYYYMMDD format (e.g., 20231015)
    * @param currentMicros microseconds since midnight
    * @return readable timestamp in YYYYMMDDHHMMSSmmm format
    */
@@ -661,11 +663,22 @@ public class DateTimeHelper {
    * @return milliseconds since Unix epoch at midnight of the specified date
    */
   public static long dateToEpoch(int date) {
+    return dateToEpoch(date, TimeZone.getDefault());
+  }
+
+  /**
+   * Converts an integer date to Unix epoch milliseconds (timestamp at midnight).
+   *
+   * @param date date in YYYYMMDD format (e.g., 20231015)
+   * @return milliseconds since Unix epoch at midnight of the specified date
+   */
+  public static long dateToEpoch(int date, TimeZone timeZone) {
     Calendar c = Calendar.getInstance();
     int year = date / 10000;
     int month = date / 100 % 100;
     int day = date % 100;
     c.clear();
+    c.setTimeZone(timeZone);
     c.set(Calendar.YEAR, year);
     c.set(Calendar.MONTH, month - 1);
     c.set(Calendar.DAY_OF_MONTH, day);
@@ -677,13 +690,13 @@ public class DateTimeHelper {
    *
    * <p>Uses Asia/Shanghai timezone for conversion.
    *
-   * @param year year (e.g., 2023)
-   * @param month month (1-12)
-   * @param day day of month (1-31)
-   * @param hour hour (0-23)
+   * @param year   year (e.g., 2023)
+   * @param month  month (1-12)
+   * @param day    day of month (1-31)
+   * @param hour   hour (0-23)
    * @param minute minute (0-59)
    * @param second second (0-59)
-   * @param milli millisecond (0-999)
+   * @param milli  millisecond (0-999)
    * @return RQ timestamp in microseconds since Unix epoch
    * @throws IllegalArgumentException if the datetime components result in a negative timestamp
    */
