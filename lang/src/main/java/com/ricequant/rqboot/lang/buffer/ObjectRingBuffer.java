@@ -9,99 +9,124 @@ import java.util.function.Supplier;
  */
 public class ObjectRingBuffer<T> {
 
-  private final int iSize;
+  private final int size;
 
-  private final T[] iBuffer;
+  private final T[] buffer;
 
-  private int iLatest;
+  private int last;
 
-  private Supplier<T> iNullObjectFactory;
+  private int count;
+
+  private Supplier<T> nullObjectFactory;
 
   @SuppressWarnings("unchecked")
   public ObjectRingBuffer(int size) {
-    iSize = size;
-    iBuffer = (T[]) new Object[iSize];
+    if (size <= 0) {
+      throw new IllegalArgumentException("Size must be positive, got: " + size);
+    }
+    this.size = size;
+    buffer = (T[]) new Object[this.size];
+    this.last = -1;
+    this.count = 0;
   }
 
   public ObjectRingBuffer(int size, Supplier<T> nullObjectFactory) {
     this(size);
-    iNullObjectFactory = nullObjectFactory;
-    for (int i = 0; i < iBuffer.length; i++)
-      iBuffer[i] = nullObjectFactory.get();
+    this.nullObjectFactory = nullObjectFactory;
+    for (int i = 0; i < buffer.length; i++)
+      buffer[i] = nullObjectFactory.get();
   }
 
   @SuppressWarnings("unchecked")
   public void clear() {
-    for (int i = 0; i < iBuffer.length; i++)
-      iBuffer[i] = iNullObjectFactory.get();
+    if (nullObjectFactory != null) {
+      for (int i = 0; i < buffer.length; i++)
+        buffer[i] = nullObjectFactory.get();
+    }
+    this.last = -1;
+    this.count = 0;
   }
 
   public T getLatest() {
-    return iBuffer[iLatest];
+    if (count == 0) {
+      throw new IllegalStateException("Buffer is empty");
+    }
+    return buffer[last];
   }
 
   public T getOldest() {
-    int index = iLatest + 1;
-    if (index >= iSize)
-      index -= iSize;
-    return iBuffer[index];
+    if (count == 0) {
+      throw new IllegalStateException("Buffer is empty");
+    }
+    // If buffer is not full, oldest is at index 0
+    // If buffer is full, oldest is at (last + 1) % size
+    if (count < size) {
+      return buffer[0];
+    }
+    int index = last + 1;
+    if (index >= size)
+      index -= size;
+    return buffer[index];
   }
 
   public T append(T ele) {
-    iLatest += 1;
-    if (iLatest >= iSize)
-      iLatest = iLatest - iSize;
+    last += 1;
+    if (last >= size)
+      last = last - size;
 
-    T oldValue = iBuffer[iLatest];
-    iBuffer[iLatest] = ele;
+    T oldValue = buffer[last];
+    buffer[last] = ele;
+
+    if (count < size)
+      count++;
 
     return oldValue;
   }
 
-  public final int getSize() {
-    return iSize;
+  public final int size() {
+    return size;
   }
 
   public T getLatestNthItem(int n) {
     checkLatestNInput(n, n);
 
-    int index = iLatest - n + 1;
+    int index = last - n + 1;
     if (index < 0)
-      index += iSize;
+      index += size;
 
-    return iBuffer[index];
+    return buffer[index];
   }
 
   public void forLatestNItems(int n, Consumer<T> consumer) {
     checkLatestNInput(n, n);
 
-    int startIndex = iLatest - n + 1;
+    int startIndex = last - n + 1;
     if (startIndex < 0)
-      startIndex += iSize;
+      startIndex += size;
 
     for (int i = 0; i < n; i++) {
       int index = startIndex + i;
-      if (index >= iSize)
-        index -= iSize;
+      if (index >= size)
+        index -= size;
 
-      consumer.accept(iBuffer[index]);
+      consumer.accept(buffer[index]);
     }
   }
 
   public void forLatestItems(int n, int length, Consumer<T> consumer) {
     checkLatestNInput(n, length);
 
-    int startIndex = iLatest - n + 1;
+    int startIndex = last - n + 1;
     if (startIndex < 0)
-      startIndex += iSize;
+      startIndex += size;
 
     int count = 0;
     for (int i = 0; i < n; i++) {
       int index = startIndex + i;
-      if (index >= iSize)
-        index -= iSize;
+      if (index >= size)
+        index -= size;
 
-      consumer.accept(iBuffer[index]);
+      consumer.accept(buffer[index]);
       if (++count == length)
         break;
     }
@@ -123,10 +148,10 @@ public class ObjectRingBuffer<T> {
 
     checkLatestNInput(n, length);
 
-    int startIndex = iLatest - n + 1;
+    int startIndex = last - n + 1;
 
     if (startIndex < 0)
-      startIndex += iSize;
+      startIndex += size;
 
     int bufferIndex = startIndex;
 
@@ -137,15 +162,23 @@ public class ObjectRingBuffer<T> {
 
     // TODO: performance can be optimized by using System.arraycopy
     for (int i = 0; i < length; i++) {
-      ret[i] = iBuffer[bufferIndex];
+      ret[i] = buffer[bufferIndex];
 
       bufferIndex++;
 
-      if (bufferIndex == iSize)
+      if (bufferIndex == size)
         bufferIndex = 0;
     }
 
     return ret;
+  }
+
+  public int count() {
+    return count;
+  }
+
+  public boolean isFull() {
+    return count >= size;
   }
 
   private void checkLatestNInput(int n, int length) {
@@ -153,13 +186,13 @@ public class ObjectRingBuffer<T> {
       throw new IllegalArgumentException(
               "n must be greater than 0. n=1 means \"the latest\", n=2 means \"the second latest\"");
 
-    if (n > iSize)
-      throw new IndexOutOfBoundsException("The buffer only has " + iSize + " slots, but wanted " + n + " items");
+    if (n > size)
+      throw new IndexOutOfBoundsException("The buffer only has " + size + " slots, but wanted " + n + " items");
 
     if (length <= 0)
       throw new IllegalArgumentException("length must be greater than 0");
 
     if (n < length)
-      throw new IndexOutOfBoundsException("length must be greater than or equal to n");
+      throw new IndexOutOfBoundsException("length must be less than or equal to n");
   }
 }
