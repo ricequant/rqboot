@@ -424,14 +424,22 @@ public class DateTimeHelper {
    *
    * <p>Extracts hours and minutes from the time portion and returns total minutes since midnight.
    *
-   * @param datetime readable timestamp in YYYYMMDDHHMMSSmmm format (e.g., 20231015143020500)
+   * @param readableTimestamp readable timestamp in YYYYMMDDHHMMSSmmm format (e.g., 20231015143020500)
    * @return total minutes since midnight (e.g., 870 for 14:30)
    */
-  public static int countMinutes(long datetime) {
-    int hours = (int) ((datetime % 1000000000) / 10000000);
-    int minutes = (int) ((datetime % 10000000) / 100000);
+  public static int countMinutes(long readableTimestamp) {
+    int hours = (int) ((readableTimestamp % 1000000000) / 10000000);
+    int minutes = (int) ((readableTimestamp % 10000000) / 100000);
 
     return hours * 60 + minutes;
+  }
+
+  // Convert 17-digit readable timestamp (YYYYMMDDHHMMSSmmm) to seconds since midnight
+  public static int toSecondOfDay(long readableTimestamp) {
+    int hh = (int) ((readableTimestamp / 10_000_000L) % 100);
+    int mm = (int) ((readableTimestamp / 100_000L) % 100);
+    int ss = (int) ((readableTimestamp / 1_000L) % 100);
+    return hh * 3600 + mm * 60 + ss;
   }
 
   /**
