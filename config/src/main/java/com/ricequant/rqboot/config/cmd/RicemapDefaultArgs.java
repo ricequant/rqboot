@@ -26,6 +26,13 @@ public enum RicemapDefaultArgs implements IArgument {
 
   JmxPort("jmxport", "jmx-port", false, "jmx agent port number", null, 1, false, "0"),
 
+  MgmtHost("mgmthost", "mgmt-host", false, "management http server bind host", null, 1, false, "0.0.0.0"),
+
+  MgmtPort("mgmtport", "mgmt-port", false, "management http server port", null, 1, false, "25000"),
+
+  MgmtToken("mgmttoken", "mgmt-token", false, "management http server static access token", null, 1, false,
+          "Ricequant123"),
+
   NoJmx("nojmx", "no-jmx", true, "disable jmx server"),
 
   Cwd("cwd", "change-working-dir", false, "Change the current working directory to the specified one"),

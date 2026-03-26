@@ -16,18 +16,27 @@ public class CommandLineArgs {
 
   private final List<IArgument> iArgumentList;
 
+  private boolean iDefaultOptionsAdded;
+
   public CommandLineArgs() {
     iOptions = new Options();
     iNameArgumentMap = new HashMap<>();
     iArgumentList = new ArrayList<>();
+
+    iDefaultOptionsAdded = false;
 
     withArguments(RicemapDefaultArgs.Help);
     withArguments(RicemapDefaultArgs.InstanceName);
   }
 
   public void withDefaultOptions() {
+    if (iDefaultOptionsAdded) {
+      return;
+    }
+    iDefaultOptionsAdded = true;
     withArguments(RicemapDefaultArgs.DevMode, RicemapDefaultArgs.ConfigFile, RicemapDefaultArgs.TempDir,
             RicemapDefaultArgs.DebugLevel, RicemapDefaultArgs.JmxPort, RicemapDefaultArgs.JmxHost,
+            RicemapDefaultArgs.MgmtHost, RicemapDefaultArgs.MgmtPort, RicemapDefaultArgs.MgmtToken,
             RicemapDefaultArgs.Cwd, RicemapDefaultArgs.IsStatOpen, RicemapDefaultArgs.SerializerType,
             RicemapDefaultArgs.RedirectConsole);
   }

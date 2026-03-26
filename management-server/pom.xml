@@ -4,10 +4,6 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.ricequant.rqboot.boot</groupId>
-	<artifactId>boot</artifactId>
-	<version>1.0-SNAPSHOT</version>
-
 	<parent>
 		<groupId>com.ricequant</groupId>
 		<artifactId>rqboot</artifactId>
@@ -15,27 +11,21 @@
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 
+	<groupId>com.ricequant.rqboot.management</groupId>
+	<artifactId>management-server</artifactId>
+	<version>1.0-SNAPSHOT</version>
+
 	<dependencies>
-		<dependency>
-			<groupId>com.ricequant.rqboot.config</groupId>
-			<artifactId>config</artifactId>
-			<version>1.0-SNAPSHOT</version>
-		</dependency>
 		<dependency>
 			<groupId>com.ricequant.rqboot.logging</groupId>
 			<artifactId>logging</artifactId>
 			<version>1.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
-			<groupId>com.ricequant.rqboot.jmx</groupId>
-			<artifactId>jmx-server</artifactId>
-			<version>1.0-SNAPSHOT</version>
-		</dependency>
-		<dependency>
-			<groupId>com.ricequant.rqboot.management</groupId>
-			<artifactId>management-server</artifactId>
-			<version>1.0-SNAPSHOT</version>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<version>5.8.1</version>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
-
 </project>

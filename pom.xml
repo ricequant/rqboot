@@ -126,6 +126,7 @@
 		<module>logging</module>
 		<module>config</module>
 		<module>jmx</module>
+		<module>management-server</module>
 		<module>boot</module>
 	</modules>
 

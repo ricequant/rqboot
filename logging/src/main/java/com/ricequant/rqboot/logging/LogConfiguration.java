@@ -22,6 +22,8 @@ public class LogConfiguration {
 
   private final Map<Integer, Set<String>> iLevelToLoggerMap = new TreeMap<>();
 
+  private volatile String iCurrentDebugLevel;
+
   public LogConfiguration(String debugLevel, String logFilePath) {
     try {
       if (logFilePath != null) {
@@ -107,6 +109,7 @@ public class LogConfiguration {
   }
 
   public void changeDebugLevel(String level) {
+    iCurrentDebugLevel = level;
 
     if ("max".equals(level)) {
       setRootLoggerLevel(Level.DEBUG);
@@ -145,6 +148,10 @@ public class LogConfiguration {
     }
     context.updateLoggers();
     System.out.println("Changed log level to: " + level);
+  }
+
+  public String getCurrentDebugLevel() {
+    return iCurrentDebugLevel;
   }
 
   private static void setLevel(LoggerContext context, String category, Level level) {
