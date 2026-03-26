@@ -37,8 +37,8 @@ public class CommandLineArgs {
     withArguments(RicemapDefaultArgs.DevMode, RicemapDefaultArgs.ConfigFile, RicemapDefaultArgs.TempDir,
             RicemapDefaultArgs.DebugLevel, RicemapDefaultArgs.JmxPort, RicemapDefaultArgs.JmxHost,
             RicemapDefaultArgs.MgmtHost, RicemapDefaultArgs.MgmtPort, RicemapDefaultArgs.MgmtToken,
-            RicemapDefaultArgs.Cwd, RicemapDefaultArgs.IsStatOpen, RicemapDefaultArgs.SerializerType,
-            RicemapDefaultArgs.RedirectConsole);
+            RicemapDefaultArgs.NoJmx, RicemapDefaultArgs.Cwd, RicemapDefaultArgs.IsStatOpen,
+            RicemapDefaultArgs.SerializerType, RicemapDefaultArgs.RedirectConsole);
   }
 
   public CommandLineArgs withArguments(IArgument... arguments) {
