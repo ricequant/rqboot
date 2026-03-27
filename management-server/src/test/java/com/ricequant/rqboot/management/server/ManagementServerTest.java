@@ -71,85 +71,19 @@ class ManagementServerTest {
   }
 
   private ManagementServer newServer(AtomicReference<String> level, AtomicBoolean shutdown) {
-    ManagementInfoProvider infoProvider = new ManagementInfoProvider() {
-      @Override
-      public String processName() {
-        return "demo-process";
-      }
-
-      @Override
-      public String applicationName() {
-        return "demo-app";
-      }
-
-      @Override
-      public String instanceName() {
-        return "demo-instance";
-      }
-
-      @Override
-      public long startedAtEpochMs() {
-        return 123456789L;
-      }
-
-      @Override
-      public long pid() {
-        return 42L;
-      }
-
-      @Override
-      public String host() {
-        return "127.0.0.1";
-      }
-
-      @Override
-      public Map<String, Object> jvmInfo() {
-        return Map.of("version", "21", "vendor", "RiceQuant", "vmName", "TestVM");
-      }
-
-      @Override
-      public List<Map<String, Object>> buildLibraries() {
-        return List.of(Map.of("name", "boot", "version", "1.0-SNAPSHOT"));
-      }
-
-      @Override
-      public ManagementEndpointsInfo endpoints() {
-        return new ManagementEndpointsInfo(true, "0.0.0.0", iServer == null ? 0 : iServer.getBoundPort(), true,
-                "127.0.0.1", 9999);
-      }
-    };
-
-    ManagementStateProvider stateProvider = new ManagementStateProvider() {
-      @Override
-      public ManagementLifecycleState lifecycleState() {
-        return ManagementLifecycleState.RUNNING;
-      }
-
-      @Override
-      public boolean healthy() {
-        return true;
-      }
-
-      @Override
-      public long uptimeMs() {
-        return 1000L;
-      }
-
-      @Override
-      public String debugLevel() {
-        return level.get();
-      }
-
-      @Override
-      public Map<String, Object> jvmState() {
-        return Map.of("heapUsedMb", 10.0, "threadCount", 5);
-      }
-    };
+    RQProcessInfo processInfo = new RQProcessInfo("demo-process", "demo-app", "demo-instance", 123456789L, 42L,
+            "127.0.0.1")
+            .debugLevel(level.get())
+            .lifecycleState(ManagementLifecycleState.RUNNING)
+            .buildLibraries(List.of(Map.of("name", "boot", "version", "1.0-SNAPSHOT")))
+            .managementEndpoint("127.0.0.1", 0)
+            .jmxEndpoint("127.0.0.1", 9999);
 
     ManagementControl control = new ManagementControl() {
       @Override
       public void changeLogLevel(String newLevel) {
         level.set(newLevel);
+        processInfo.debugLevel(newLevel);
       }
 
       @Override
@@ -158,8 +92,8 @@ class ManagementServerTest {
       }
     };
 
-    return new ManagementServer(new ManagementServerConfig("127.0.0.1", 0, "token"), infoProvider, stateProvider,
-            control);
+    return new ManagementServer(new ManagementServerConfig("127.0.0.1", 0, "token"),
+            new ManagementCommandService(processInfo, control));
   }
 
   private HttpResponse<String> send(String path, String method, String body) throws IOException, InterruptedException {

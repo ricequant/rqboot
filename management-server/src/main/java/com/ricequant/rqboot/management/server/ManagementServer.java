@@ -1,6 +1,5 @@
 package com.ricequant.rqboot.management.server;
 
-import com.ricequant.rqboot.logging.LogConfiguration;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -9,17 +8,8 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.management.ManagementFactory;
-import java.lang.management.MemoryMXBean;
-import java.lang.management.MemoryUsage;
-import java.lang.management.OperatingSystemMXBean;
-import java.lang.management.ThreadMXBean;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -33,22 +23,15 @@ public class ManagementServer {
 
   private final ManagementServerConfig iConfig;
 
-  private final ManagementInfoProvider iInfoProvider;
-
-  private final ManagementStateProvider iStateProvider;
-
-  private final ManagementControl iControl;
+  private final ManagementCommandService iCommandService;
 
   private HttpServer iHttpServer;
 
   private ExecutorService iExecutorService;
 
-  public ManagementServer(ManagementServerConfig config, ManagementInfoProvider infoProvider,
-          ManagementStateProvider stateProvider, ManagementControl control) {
+  public ManagementServer(ManagementServerConfig config, ManagementCommandService commandService) {
     iConfig = Objects.requireNonNull(config, "config");
-    iInfoProvider = Objects.requireNonNull(infoProvider, "infoProvider");
-    iStateProvider = Objects.requireNonNull(stateProvider, "stateProvider");
-    iControl = Objects.requireNonNull(control, "control");
+    iCommandService = Objects.requireNonNull(commandService, "commandService");
   }
 
   public synchronized void start() throws IOException {
@@ -63,46 +46,29 @@ public class ManagementServer {
     iHttpServer.createContext("/management/info", new JsonHandler("GET") {
       @Override
       protected Object handleJson(HttpExchange exchange) {
-        return buildInfoPayload();
+        return iCommandService.infoPayload();
       }
     });
     iHttpServer.createContext("/management/state", new JsonHandler("GET") {
       @Override
       protected Object handleJson(HttpExchange exchange) {
-        return buildStatePayload();
+        return iCommandService.statePayload();
       }
     });
     iHttpServer.createContext("/management/log-level", new JsonHandler("POST") {
       @Override
       protected Object handleJson(HttpExchange exchange) throws IOException {
         Map<String, Object> body = readJsonObject(exchange);
-        Object level = body.get("level");
-        if (!(level instanceof String levelString) || levelString.isBlank()) {
-          throw new IllegalArgumentException("Field <level> is required");
-        }
-
-        iControl.changeLogLevel(levelString);
-
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("ok", true);
-        payload.put("debugLevel", iStateProvider.debugLevel());
-        payload.put("updatedAt", Instant.now().toString());
-        return payload;
+        return iCommandService.changeLogLevel(stringValue(body.get("level")));
       }
     });
     iHttpServer.createContext("/management/shutdown", new JsonHandler("POST") {
       @Override
       protected Object handleJson(HttpExchange exchange) throws IOException {
         Map<String, Object> body = readJsonObject(exchange);
-        Object reason = body.get("reason");
-        String shutdownReason = reason instanceof String ? (String) reason : "requested via management api";
-
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("ok", true);
-        payload.put("requestedAt", Instant.now().toString());
-        payload.put("reason", shutdownReason);
-
-        new Thread(() -> iControl.gracefulShutdown(shutdownReason), "rqboot-management-shutdown").start();
+        String shutdownReason = stringValue(body.get("reason"));
+        Map<String, Object> payload = iCommandService.shutdownPayload(shutdownReason);
+        new Thread(() -> iCommandService.gracefulShutdown(shutdownReason), "rqboot-management-shutdown").start();
         return payload;
       }
     });
@@ -137,113 +103,8 @@ public class ManagementServer {
     return iHttpServer.getAddress();
   }
 
-  public static Map<String, Object> collectJvmState() {
-    MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
-    ThreadMXBean threadBean = ManagementFactory.getThreadMXBean();
-    OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
-
-    Map<String, Object> jvm = new LinkedHashMap<>();
-    MemoryUsage heap = memoryBean.getHeapMemoryUsage();
-    MemoryUsage nonHeap = memoryBean.getNonHeapMemoryUsage();
-    jvm.put("heapUsedMb", toMb(heap.getUsed()));
-    jvm.put("heapCommittedMb", toMb(heap.getCommitted()));
-    jvm.put("heapMaxMb", toMb(heap.getMax()));
-    jvm.put("nonHeapUsedMb", toMb(nonHeap.getUsed()));
-    jvm.put("threadCount", threadBean.getThreadCount());
-    jvm.put("processCpuLoad", cpuMetric(osBean, "getProcessCpuLoad"));
-    jvm.put("systemCpuLoad", cpuMetric(osBean, "getSystemCpuLoad"));
-    return jvm;
-  }
-
-  public static Map<String, Object> collectJvmInfo() {
-    Map<String, Object> info = new LinkedHashMap<>();
-    info.put("version", System.getProperty("java.version"));
-    info.put("vendor", System.getProperty("java.vendor"));
-    info.put("vmName", System.getProperty("java.vm.name"));
-    return info;
-  }
-
-  public static String resolveHostName() {
-    try {
-      return InetAddress.getLocalHost().getHostAddress();
-    }
-    catch (Exception e) {
-      return "unknown";
-    }
-  }
-
-  public static long currentPid() {
-    return ProcessHandle.current().pid();
-  }
-
-  private Map<String, Object> buildInfoPayload() {
-    Map<String, Object> payload = new LinkedHashMap<>();
-    payload.put("processName", iInfoProvider.processName());
-    payload.put("applicationName", iInfoProvider.applicationName());
-    payload.put("instanceName", iInfoProvider.instanceName());
-    payload.put("pid", iInfoProvider.pid());
-    payload.put("host", iInfoProvider.host());
-    payload.put("startedAtEpochMs", iInfoProvider.startedAtEpochMs());
-    payload.put("management", endpointsJson(iInfoProvider.endpoints()));
-    payload.put("jvm", iInfoProvider.jvmInfo());
-
-    Map<String, Object> build = new LinkedHashMap<>();
-    build.put("libraries", iInfoProvider.buildLibraries());
-    payload.put("build", build);
-    return payload;
-  }
-
-  private Map<String, Object> buildStatePayload() {
-    Map<String, Object> payload = new LinkedHashMap<>();
-    payload.put("state", iStateProvider.lifecycleState().name());
-    payload.put("healthy", iStateProvider.healthy());
-    payload.put("uptimeMs", iStateProvider.uptimeMs());
-
-    Map<String, Object> logging = new LinkedHashMap<>();
-    logging.put("debugLevel", iStateProvider.debugLevel());
-    payload.put("logging", logging);
-    payload.put("jvm", iStateProvider.jvmState());
-    return payload;
-  }
-
-  private Map<String, Object> endpointsJson(ManagementEndpointsInfo endpointsInfo) {
-    Map<String, Object> management = new LinkedHashMap<>();
-
-    Map<String, Object> http = new LinkedHashMap<>();
-    http.put("enabled", endpointsInfo.httpEnabled());
-    http.put("bindHost", endpointsInfo.httpHost());
-    http.put("port", endpointsInfo.httpPort());
-    management.put("http", http);
-
-    Map<String, Object> jmx = new LinkedHashMap<>();
-    jmx.put("enabled", endpointsInfo.jmxEnabled());
-    jmx.put("host", endpointsInfo.jmxHost());
-    jmx.put("port", endpointsInfo.jmxPort());
-    management.put("jmx", jmx);
-    return management;
-  }
-
-  private static double toMb(long bytes) {
-    if (bytes < 0) {
-      return -1;
-    }
-    return bytes / 1024.0 / 1024.0;
-  }
-
-  private static Double cpuMetric(OperatingSystemMXBean osBean, String methodName) {
-    try {
-      Object value = osBean.getClass().getMethod(methodName).invoke(osBean);
-      if (value instanceof Number number) {
-        double metric = number.doubleValue();
-        if (metric >= 0) {
-          return metric;
-        }
-      }
-    }
-    catch (Exception e) {
-      return null;
-    }
-    return null;
+  public ManagementCommandService commandService() {
+    return iCommandService;
   }
 
   private abstract class JsonHandler implements HttpHandler {
@@ -296,7 +157,7 @@ public class ManagementServer {
     }
 
     if (body.isEmpty()) {
-      return new LinkedHashMap<>();
+      return Map.of();
     }
 
     return parseSimpleJsonObject(body);
@@ -309,7 +170,7 @@ public class ManagementServer {
     }
 
     String content = trimmed.substring(1, trimmed.length() - 1).trim();
-    Map<String, Object> ret = new LinkedHashMap<>();
+    Map<String, Object> ret = new java.util.LinkedHashMap<>();
     if (content.isEmpty()) {
       return ret;
     }
@@ -328,7 +189,7 @@ public class ManagementServer {
   }
 
   private static List<String> splitTopLevel(String content) {
-    List<String> parts = new ArrayList<>();
+    List<String> parts = new java.util.ArrayList<>();
     StringBuilder current = new StringBuilder();
     boolean inString = false;
     boolean escaped = false;
@@ -446,5 +307,9 @@ public class ManagementServer {
   private static String escapeJson(String value) {
     return value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
             .replace("\r", "\\r");
+  }
+
+  private static String stringValue(Object value) {
+    return value == null ? null : String.valueOf(value);
   }
 }

@@ -10,12 +10,11 @@ import com.ricequant.rqboot.jmx.server.JmxBeanRegistry;
 import com.ricequant.rqboot.jmx.server.JmxServerException;
 import com.ricequant.rqboot.lang.ClassLoadHelper;
 import com.ricequant.rqboot.management.server.ManagementControl;
-import com.ricequant.rqboot.management.server.ManagementEndpointsInfo;
-import com.ricequant.rqboot.management.server.ManagementInfoProvider;
+import com.ricequant.rqboot.management.server.ManagementCommandService;
 import com.ricequant.rqboot.management.server.ManagementLifecycleState;
 import com.ricequant.rqboot.management.server.ManagementServer;
 import com.ricequant.rqboot.management.server.ManagementServerConfig;
-import com.ricequant.rqboot.management.server.ManagementStateProvider;
+import com.ricequant.rqboot.management.server.RQProcessInfo;
 import com.ricequant.rqboot.logging.LogConfiguration;
 import com.ricequant.rqboot.logging.LogLevelJmx;
 
@@ -33,12 +32,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.jar.Manifest;
 
-/**
- * @author chenfeng
- */
 public class RicequantMain implements IDaemonCallback {
 
   static {
@@ -49,32 +44,13 @@ public class RicequantMain implements IDaemonCallback {
 
   protected IApplication iApplication;
 
-  private Semaphore iShutDownSemaphore = new Semaphore(0);
+  private final Semaphore iShutDownSemaphore = new Semaphore(0);
 
   private IJmxBeanRegistry iBeanRegistry;
 
   private ManagementServer iManagementServer;
 
-  private LogConfiguration iLogConfiguration;
-
-  private String iProcessName;
-
-  private long iStartedAtEpochMs;
-
-  private boolean iJmxEnabled;
-
-  private String iJmxHost;
-
-  private Integer iJmxPort;
-
-  private String iMgmtHost;
-
-  private Integer iMgmtPort;
-
-  private String iMgmtToken;
-
-  private final AtomicReference<ManagementLifecycleState> iLifecycleState = new AtomicReference<>(
-          ManagementLifecycleState.STARTING);
+  private RQProcessInfo iProcessInfo;
 
   public static void main(final String[] args) throws Exception {
     Security.setProperty("jdk.tls.disabledAlgorithms", "");
@@ -82,8 +58,9 @@ public class RicequantMain implements IDaemonCallback {
   }
 
   public static void boot(RicequantMain main, final String[] args) {
-    if (reportVersion(args))
+    if (reportVersion(args)) {
       return;
+    }
 
     run(main, args);
     main.setupHook();
@@ -92,10 +69,8 @@ public class RicequantMain implements IDaemonCallback {
   private static boolean reportVersion(String[] args) {
     for (String arg : args) {
       if ("-v".equals(arg) || "--version".equals(arg)) {
-
         System.out.println(RicequantMain.class.getPackage().getSpecificationVersion());
         VersionReporter.printVersionInfo();
-
         return true;
       }
     }
@@ -108,7 +83,9 @@ public class RicequantMain implements IDaemonCallback {
       main.start();
     }
     catch (Exception e) {
-      main.iLifecycleState.set(ManagementLifecycleState.FAILED);
+      if (main.iProcessInfo != null) {
+        main.iProcessInfo.lifecycleState(ManagementLifecycleState.FAILED);
+      }
       e.printStackTrace();
     }
   }
@@ -133,7 +110,6 @@ public class RicequantMain implements IDaemonCallback {
           Class<?> applicationClass = Class.forName(applicationClassString);
           return (IApplication) applicationClass.newInstance();
         }
-
       }
     }
     catch (Exception e) {
@@ -149,15 +125,15 @@ public class RicequantMain implements IDaemonCallback {
 
   @Override
   public void init(String[] args) {
-    iStartedAtEpochMs = System.currentTimeMillis();
-    iLifecycleState.set(ManagementLifecycleState.STARTING);
+    long startedAtEpochMs = System.currentTimeMillis();
     VersionReporter.printVersionInfo();
     System.out.println("Looking for implementation of IApplication...");
 
     iApplication = getApplication();
 
-    if (iApplication == null)
+    if (iApplication == null) {
       iApplication = findApplicationClassFromManifest();
+    }
 
     if (iApplication == null) {
       List<Class<IApplication>> apps = findAppImplementation();
@@ -196,39 +172,45 @@ public class RicequantMain implements IDaemonCallback {
 
     LogConfiguration logConfig = new LogConfiguration(optionMap.getValue(RicemapDefaultArgs.DebugLevel),
             optionMap.getValue(RicemapDefaultArgs.RedirectConsole));
-    iLogConfiguration = logConfig;
-    iProcessName = optionMap.getValue(RicemapDefaultArgs.InstanceName, iApplication.getAppName());
-    iMgmtHost = optionMap.getValue(RicemapDefaultArgs.MgmtHost);
-    iMgmtPort = Integer.parseInt(optionMap.getValue(RicemapDefaultArgs.MgmtPort));
-    iMgmtToken = optionMap.getValue(RicemapDefaultArgs.MgmtToken);
+
+    String processName = optionMap.getValue(RicemapDefaultArgs.InstanceName, iApplication.getAppName());
+    iProcessInfo = new RQProcessInfo(processName, iApplication.getAppName(), processName, startedAtEpochMs,
+            RQProcessInfo.currentPid(), RQProcessInfo.resolveHostName())
+            .lifecycleState(ManagementLifecycleState.STARTING)
+            .debugLevel(logConfig.getCurrentDebugLevel())
+            .buildLibraries(collectBuildLibraries());
 
     try {
       iApplication.init(optionMap, args);
     }
     catch (Throwable e) {
+      iProcessInfo.lifecycleState(ManagementLifecycleState.FAILED);
       new ApplicationException("Application failed to be initialized.", e).printStackTrace();
       System.exit(-1);
     }
 
     try {
-      if (!optionMap.isOptionSet(RicemapDefaultArgs.NoJmx))
+      if (!optionMap.isOptionSet(RicemapDefaultArgs.NoJmx)) {
         iBeanRegistry = startJmxServer(logConfig, optionMap);
-      else
+      }
+      else {
         System.out.println("Jmx server is disabled");
+      }
     }
     catch (Throwable e) {
       System.err.println("Application failed to start jmx server.");
       e.printStackTrace();
     }
 
-    if (iBeanRegistry == null)
+    if (iBeanRegistry == null) {
       iBeanRegistry = new EmptyJmxBeanRegistry();
+    }
 
     try {
       iManagementServer = startManagementServer(logConfig, optionMap);
     }
     catch (Throwable e) {
-      iLifecycleState.set(ManagementLifecycleState.FAILED);
+      iProcessInfo.lifecycleState(ManagementLifecycleState.FAILED);
       throw new ApplicationException("Application failed to start management server.", e);
     }
   }
@@ -243,8 +225,9 @@ public class RicequantMain implements IDaemonCallback {
       System.setProperty("user.dir", absoluteCwd.getAbsolutePath());
       System.out.println("Set working directory to: " + absoluteCwd.getAbsolutePath());
     }
-    else
+    else {
       System.err.println("Unable to determine the current working directory, use default");
+    }
   }
 
   protected IApplication getApplication() {
@@ -262,15 +245,15 @@ public class RicequantMain implements IDaemonCallback {
   public void start() throws Exception {
     try {
       iBeanRegistry.register(new VMStatsReporter());
-      iApplication.start(iBeanRegistry);
-      iLifecycleState.set(ManagementLifecycleState.RUNNING);
+      iApplication.start(iBeanRegistry, iManagementServer.commandService());
+      iProcessInfo.lifecycleState(ManagementLifecycleState.RUNNING);
     }
     catch (JmxServerException jmxe) {
       System.err.println("Unable to register jmx bean");
       jmxe.printStackTrace();
     }
     catch (Throwable e) {
-      iLifecycleState.set(ManagementLifecycleState.FAILED);
+      iProcessInfo.lifecycleState(ManagementLifecycleState.FAILED);
       new ApplicationException("Application failed to start.", e).printStackTrace();
       System.exit(-2);
     }
@@ -278,30 +261,23 @@ public class RicequantMain implements IDaemonCallback {
 
   @Override
   public void stop() {
-    iLifecycleState.set(ManagementLifecycleState.STOPPING);
+    iProcessInfo.lifecycleState(ManagementLifecycleState.STOPPING);
     if (iManagementServer != null) {
       iManagementServer.stop();
     }
     iApplication.tearDown();
     iBeanRegistry.withdrawService();
-    iLifecycleState.set(ManagementLifecycleState.STOPPED);
+    iProcessInfo.lifecycleState(ManagementLifecycleState.STOPPED);
     iShutDownSemaphore.release();
   }
 
-
   @Override
   public void destroy() {
-
   }
 
   /**
    * Override this function if your application requires another implementation of starting JmxBeanRegistry. Return
    * null, if your application does not need it.
-   *
-   * @param logConfig
-   * @param optionMap parsed command line arguments in a map
-   * @return the JmxBeanRegistry
-   * @throws Exception
    */
   protected JmxBeanRegistry startJmxServer(LogConfiguration logConfig, OptionMap optionMap) throws Exception {
     String host = optionMap.getValue(RicemapDefaultArgs.JmxHost);
@@ -313,117 +289,31 @@ public class RicequantMain implements IDaemonCallback {
       server.close();
     }
 
-    JmxBeanRegistry manager = new JmxBeanRegistry(new InetSocketAddress(host, port), iProcessName);
-
+    JmxBeanRegistry manager = new JmxBeanRegistry(new InetSocketAddress(host, port), iProcessInfo.processName());
     manager.register(new LogLevelJmx(logConfig));
-    iJmxEnabled = true;
-    iJmxHost = host;
-    iJmxPort = port;
+    iProcessInfo.jmxEndpoint(host, port);
     return manager;
   }
 
-  protected ManagementServer startManagementServer(LogConfiguration logConfig, OptionMap optionMap) throws Exception {
-    ManagementServerConfig config = new ManagementServerConfig(iMgmtHost, iMgmtPort, iMgmtToken);
-    ManagementServer server = new ManagementServer(config, createManagementInfoProvider(),
-            createManagementStateProvider(logConfig), createManagementControl(logConfig));
+  private ManagementServer startManagementServer(LogConfiguration logConfig, OptionMap optionMap) throws Exception {
+    String host = optionMap.getValue(RicemapDefaultArgs.MgmtHost);
+    int port = Integer.parseInt(optionMap.getValue(RicemapDefaultArgs.MgmtPort));
+    String token = optionMap.getValue(RicemapDefaultArgs.MgmtToken);
+
+    ManagementServerConfig config = new ManagementServerConfig(host, port, token);
+    ManagementServer server = new ManagementServer(config, new ManagementCommandService(iProcessInfo,
+            managementControl(logConfig)));
     server.start();
-    iMgmtPort = server.getBoundPort();
+    iProcessInfo.managementEndpoint(host, server.getBoundPort());
     return server;
   }
 
-  protected ManagementInfoProvider createManagementInfoProvider() {
-    return new ManagementInfoProvider() {
-      @Override
-      public String processName() {
-        return iProcessName;
-      }
-
-      @Override
-      public String applicationName() {
-        return iApplication.getAppName();
-      }
-
-      @Override
-      public String instanceName() {
-        return iProcessName;
-      }
-
-      @Override
-      public long startedAtEpochMs() {
-        return iStartedAtEpochMs;
-      }
-
-      @Override
-      public long pid() {
-        return ManagementServer.currentPid();
-      }
-
-      @Override
-      public String host() {
-        return ManagementServer.resolveHostName();
-      }
-
-      @Override
-      public Map<String, Object> jvmInfo() {
-        return ManagementServer.collectJvmInfo();
-      }
-
-      @Override
-      public List<Map<String, Object>> buildLibraries() {
-        List<Map<String, Object>> libraries = new ArrayList<>();
-        for (VersionReporter.LibraryInfo libraryInfo : new VersionReporter().getDiscoveredLibraries()) {
-          Map<String, Object> entry = new LinkedHashMap<>();
-          entry.put("name", libraryInfo.name);
-          entry.put("version", libraryInfo.version);
-          entry.put("buildTime", libraryInfo.buildTime);
-          entry.put("gitInfo", libraryInfo.gitInfo);
-          entry.put("jarPath", libraryInfo.jarPath);
-          libraries.add(entry);
-        }
-        return libraries;
-      }
-
-      @Override
-      public ManagementEndpointsInfo endpoints() {
-        return new ManagementEndpointsInfo(true, iMgmtHost, iMgmtPort, iJmxEnabled, iJmxHost, iJmxPort);
-      }
-    };
-  }
-
-  protected ManagementStateProvider createManagementStateProvider(LogConfiguration logConfig) {
-    return new ManagementStateProvider() {
-      @Override
-      public ManagementLifecycleState lifecycleState() {
-        return iLifecycleState.get();
-      }
-
-      @Override
-      public boolean healthy() {
-        return iLifecycleState.get() == ManagementLifecycleState.RUNNING;
-      }
-
-      @Override
-      public long uptimeMs() {
-        return Math.max(0, System.currentTimeMillis() - iStartedAtEpochMs);
-      }
-
-      @Override
-      public String debugLevel() {
-        return logConfig.getCurrentDebugLevel();
-      }
-
-      @Override
-      public Map<String, Object> jvmState() {
-        return ManagementServer.collectJvmState();
-      }
-    };
-  }
-
-  protected ManagementControl createManagementControl(LogConfiguration logConfig) {
+  private ManagementControl managementControl(LogConfiguration logConfig) {
     return new ManagementControl() {
       @Override
       public void changeLogLevel(String level) {
         logConfig.changeDebugLevel(level);
+        iProcessInfo.debugLevel(logConfig.getCurrentDebugLevel());
       }
 
       @Override
@@ -432,6 +322,20 @@ public class RicequantMain implements IDaemonCallback {
         RicequantMain.this.stop();
       }
     };
+  }
+
+  private List<Map<String, Object>> collectBuildLibraries() {
+    List<Map<String, Object>> libraries = new ArrayList<>();
+    for (VersionReporter.LibraryInfo libraryInfo : new VersionReporter().getDiscoveredLibraries()) {
+      Map<String, Object> entry = new LinkedHashMap<>();
+      entry.put("name", libraryInfo.name);
+      entry.put("version", libraryInfo.version);
+      entry.put("buildTime", libraryInfo.buildTime);
+      entry.put("gitInfo", libraryInfo.gitInfo);
+      entry.put("jarPath", libraryInfo.jarPath);
+      libraries.add(entry);
+    }
+    return libraries;
   }
 
   private class ShutDownHook extends Thread {
