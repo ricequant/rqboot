@@ -5,7 +5,14 @@ All endpoints require the `X-Management-Token` header. `rqboot` defaults to `Ric
 ## Endpoints
 
 - `GET /management/info`
-  Returns process metadata that stays stable for the current process lifetime: process and application identity, PID, host, start time, management endpoint bindings, JVM runtime identity, and build library information.
+  Returns structured descriptive metadata for rendering:
+  - `producerType`
+  - `title`
+  - `subtitle`
+  - `tile`
+  - `overview`
+  - `sections`
+  Each item or section carries display type information so hubs and UIs can render non-`RicequantMain` processes without hardcoded rqboot assumptions.
 
 - `GET /management/state`
   Returns dynamic runtime state: lifecycle state, health, uptime, current debug level, and JVM memory/CPU/thread metrics.

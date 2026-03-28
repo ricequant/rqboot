@@ -49,8 +49,10 @@ class ManagementServerTest {
 
     HttpResponse<String> info = send("/management/info", "GET", null);
     assertEquals(200, info.statusCode());
-    assertTrue(info.body().contains("\"processName\":\"demo-process\""));
-    assertTrue(info.body().contains("\"management\""));
+    assertTrue(info.body().contains("\"producerType\":\"rqboot\""));
+    assertTrue(info.body().contains("\"title\":\"demo-app\""));
+    assertTrue(info.body().contains("\"overview\""));
+    assertTrue(info.body().contains("\"sections\""));
 
     HttpResponse<String> state = send("/management/state", "GET", null);
     assertEquals(200, state.statusCode());

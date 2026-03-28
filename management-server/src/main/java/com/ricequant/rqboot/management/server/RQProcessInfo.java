@@ -121,18 +121,28 @@ public class RQProcessInfo {
 
   public Map<String, Object> infoPayload() {
     Map<String, Object> payload = new LinkedHashMap<>();
-    payload.put("processName", processName);
-    payload.put("applicationName", applicationName);
-    payload.put("instanceName", instanceName);
-    payload.put("pid", pid);
-    payload.put("host", host);
-    payload.put("startedAtEpochMs", startedAtEpochMs);
-    payload.put("management", endpointsJson());
-    payload.put("jvm", collectJvmInfo());
-
-    Map<String, Object> build = new LinkedHashMap<>();
-    build.put("libraries", buildLibraries);
-    payload.put("build", build);
+    payload.put("producerType", "rqboot");
+    payload.put("title", applicationName);
+    payload.put("subtitle", instanceName);
+    payload.put("tile", List.of(infoItem("pid", "PID", "number", pid)));
+    payload.put("overview", List.of(infoItem("applicationName", "Application", "string", applicationName),
+            infoItem("instanceName", "Instance", "string", instanceName), infoItem("pid", "PID", "number", pid),
+            infoItem("host", "Host", "string", host), infoItem("startedAt", "Started At", "timestamp", startedAtEpochMs)));
+    payload.put("sections", List.of(fieldsSection("identity", "Identity",
+                    List.of(infoItem("processName", "Process Name", "string", processName),
+                            infoItem("applicationName", "Application Name", "string", applicationName),
+                            infoItem("instanceName", "Instance Name", "string", instanceName),
+                            infoItem("pid", "PID", "number", pid), infoItem("host", "Host", "string", host),
+                            infoItem("startedAt", "Started At", "timestamp", startedAtEpochMs))),
+            fieldsSection("management", "Management", List.of(infoItem("httpEnabled", "HTTP Enabled", "boolean", managementEnabled),
+                    infoItem("httpBindHost", "HTTP Bind Host", "string", managementHost),
+                    infoItem("httpPort", "HTTP Port", "number", managementPort),
+                    infoItem("jmxEnabled", "JMX Enabled", "boolean", jmxEnabled),
+                    infoItem("jmxHost", "JMX Host", "string", jmxHost), infoItem("jmxPort", "JMX Port", "number", jmxPort))),
+            fieldsSection("jvm", "JVM", List.of(infoItem("version", "Version", "string", System.getProperty("java.version")),
+                    infoItem("vendor", "Vendor", "string", System.getProperty("java.vendor")),
+                    infoItem("vmName", "VM Name", "string", System.getProperty("java.vm.name")))),
+            jsonSection("build", "Build", Map.of("libraries", buildLibraries))));
     return payload;
   }
 
@@ -147,23 +157,6 @@ public class RQProcessInfo {
     payload.put("logging", logging);
     payload.put("jvm", collectJvmState());
     return payload;
-  }
-
-  private Map<String, Object> endpointsJson() {
-    Map<String, Object> management = new LinkedHashMap<>();
-
-    Map<String, Object> http = new LinkedHashMap<>();
-    http.put("enabled", managementEnabled);
-    http.put("bindHost", managementHost);
-    http.put("port", managementPort);
-    management.put("http", http);
-
-    Map<String, Object> jmx = new LinkedHashMap<>();
-    jmx.put("enabled", jmxEnabled);
-    jmx.put("host", jmxHost);
-    jmx.put("port", jmxPort);
-    management.put("jmx", jmx);
-    return management;
   }
 
   public static Map<String, Object> collectJvmState() {
@@ -226,5 +219,32 @@ public class RQProcessInfo {
       return null;
     }
     return null;
+  }
+
+  private static Map<String, Object> infoItem(String key, String label, String type, Object value) {
+    Map<String, Object> item = new LinkedHashMap<>();
+    item.put("key", key);
+    item.put("label", label);
+    item.put("type", type);
+    item.put("value", value);
+    return item;
+  }
+
+  private static Map<String, Object> fieldsSection(String id, String title, List<Map<String, Object>> items) {
+    Map<String, Object> section = new LinkedHashMap<>();
+    section.put("id", id);
+    section.put("title", title);
+    section.put("kind", "fields");
+    section.put("items", items);
+    return section;
+  }
+
+  private static Map<String, Object> jsonSection(String id, String title, Object value) {
+    Map<String, Object> section = new LinkedHashMap<>();
+    section.put("id", id);
+    section.put("title", title);
+    section.put("kind", "json");
+    section.put("value", value);
+    return section;
   }
 }
