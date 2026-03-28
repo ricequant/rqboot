@@ -42,7 +42,7 @@ public class RicequantMain implements IDaemonCallback {
 
   private static final String cApplicationClassKey = "ApplicationClass";
 
-  protected IApplication iApplication;
+  protected IApplication2 iApplication;
 
   private final Semaphore iShutDownSemaphore = new Semaphore(0);
 
@@ -90,7 +90,7 @@ public class RicequantMain implements IDaemonCallback {
     }
   }
 
-  private IApplication findApplicationClassFromManifest() {
+  private IApplication2 findApplicationClassFromManifest() {
     try {
       Enumeration<URL> resources = RicequantMain.class.getClassLoader().getResources("META-INF/MANIFEST.MF");
 
@@ -108,7 +108,7 @@ public class RicequantMain implements IDaemonCallback {
         if (applicationClassString != null) {
           applicationClassString = applicationClassString.replace(System.lineSeparator(), "");
           Class<?> applicationClass = Class.forName(applicationClassString);
-          return (IApplication) applicationClass.newInstance();
+          return (IApplication2) applicationClass.newInstance();
         }
       }
     }
@@ -119,8 +119,8 @@ public class RicequantMain implements IDaemonCallback {
     return null;
   }
 
-  protected List<Class<IApplication>> findAppImplementation() {
-    return ClassLoadHelper.findImplInClassPath(IApplication.class, name -> true);
+  protected List<Class<IApplication2>> findAppImplementation() {
+    return ClassLoadHelper.findImplInClassPath(IApplication2.class, name -> true);
   }
 
   @Override
@@ -136,7 +136,7 @@ public class RicequantMain implements IDaemonCallback {
     }
 
     if (iApplication == null) {
-      List<Class<IApplication>> apps = findAppImplementation();
+      List<Class<IApplication2>> apps = findAppImplementation();
 
       if (apps.isEmpty()) {
         throw new RuntimeException("Cannot find any application implementations to load");
@@ -230,7 +230,7 @@ public class RicequantMain implements IDaemonCallback {
     }
   }
 
-  protected IApplication getApplication() {
+  protected IApplication2 getApplication() {
     return null;
   }
 

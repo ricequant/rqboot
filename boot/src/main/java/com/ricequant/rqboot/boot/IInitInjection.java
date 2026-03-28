@@ -5,7 +5,7 @@ package com.ricequant.rqboot.boot;
  */
 public interface IInitInjection {
 
-  void set(IApplication application);
+  void set(IApplication2 application);
 
   void init();
 }
