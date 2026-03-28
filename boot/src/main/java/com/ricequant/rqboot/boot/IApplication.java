@@ -9,7 +9,7 @@ import com.ricequant.rqboot.management.server.ManagementCommandService;
 /**
  * @author chenfeng
  */
-public interface IApplication2 {
+public interface IApplication {
 
   String getAppName();
 
