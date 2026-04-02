@@ -23,6 +23,13 @@ All endpoints require the `X-Management-Token` header. `rqboot` defaults to `Ric
 - `POST /management/shutdown`
   Request body: `{"reason":"operator requested"}`. Initiates graceful shutdown through the existing `RicequantMain.stop()` path.
 
+- `GET /management/commands`
+  Returns the user-registered custom management commands. Each item includes command name, title, description, and typed argument metadata.
+
+- `POST /management/commands/{commandName}`
+  Executes a user-registered custom management command. The request body is a JSON object whose fields match the declared command arguments.
+  Supported argument types are `long`, `double`, `string`, `long[]`, `double[]`, and `string[]`.
+
 ## Status Codes
 
 - `200` success
@@ -36,3 +43,4 @@ All endpoints require the `X-Management-Token` header. `rqboot` defaults to `Ric
 - Clients should fetch `/management/info` on page load or manual refresh.
 - Clients should poll `/management/state` periodically.
 - Force refresh from a hub should call both endpoints explicitly and store the fetch timestamp.
+- Clients can fetch `/management/commands` when opening an operator command panel or when the process definition changes.

@@ -1,5 +1,6 @@
 package com.ricequant.rqboot.management.server;
 
+import com.alibaba.fastjson.JSON;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -9,9 +10,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Locale;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
@@ -39,30 +40,29 @@ public class ManagementServer {
       return;
     }
 
-    InetSocketAddress address = new InetSocketAddress(iConfig.host(), iConfig.port());
-    iHttpServer = HttpServer.create(address, 0);
-    iExecutorService = Executors.newCachedThreadPool();
-    iHttpServer.setExecutor(iExecutorService);
-    iHttpServer.createContext("/management/info", new JsonHandler("GET") {
+    HttpServer server = createHttpServer();
+    ExecutorService executorService = Executors.newCachedThreadPool();
+    server.setExecutor(executorService);
+    server.createContext("/management/info", new JsonHandler("GET") {
       @Override
       protected Object handleJson(HttpExchange exchange) {
         return iCommandService.infoPayload();
       }
     });
-    iHttpServer.createContext("/management/state", new JsonHandler("GET") {
+    server.createContext("/management/state", new JsonHandler("GET") {
       @Override
       protected Object handleJson(HttpExchange exchange) {
         return iCommandService.statePayload();
       }
     });
-    iHttpServer.createContext("/management/log-level", new JsonHandler("POST") {
+    server.createContext("/management/log-level", new JsonHandler("POST") {
       @Override
       protected Object handleJson(HttpExchange exchange) throws IOException {
         Map<String, Object> body = readJsonObject(exchange);
         return iCommandService.changeLogLevel(stringValue(body.get("level")));
       }
     });
-    iHttpServer.createContext("/management/shutdown", new JsonHandler("POST") {
+    server.createContext("/management/shutdown", new JsonHandler("POST") {
       @Override
       protected Object handleJson(HttpExchange exchange) throws IOException {
         Map<String, Object> body = readJsonObject(exchange);
@@ -72,7 +72,11 @@ public class ManagementServer {
         return payload;
       }
     });
-    iHttpServer.start();
+    server.createContext("/management/commands", new CustomCommandHandler());
+    server.start();
+
+    iHttpServer = server;
+    iExecutorService = executorService;
 
     System.out.println("Management server started at: " + getBoundAddress().getHostString() + ":" + getBoundPort());
   }
@@ -105,6 +109,22 @@ public class ManagementServer {
 
   public ManagementCommandService commandService() {
     return iCommandService;
+  }
+
+  private HttpServer createHttpServer() throws IOException {
+    InetSocketAddress requestedAddress = new InetSocketAddress(iConfig.host(), iConfig.port());
+    try {
+      return HttpServer.create(requestedAddress, 0);
+    }
+    catch (java.net.BindException e) {
+      if (iConfig.port() == 0) {
+        throw e;
+      }
+
+      System.err.println("Management port " + iConfig.port() + " is unavailable on " + iConfig.host()
+              + ", falling back to a random port.");
+      return HttpServer.create(new InetSocketAddress(iConfig.host(), 0), 0);
+    }
   }
 
   private abstract class JsonHandler implements HttpHandler {
@@ -145,6 +165,48 @@ public class ManagementServer {
     protected abstract Object handleJson(HttpExchange exchange) throws Exception;
   }
 
+  private class CustomCommandHandler implements HttpHandler {
+
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+      try {
+        if (!isAuthorized(exchange.getRequestHeaders())) {
+          writeJson(exchange, 401, Map.of("error", "unauthorized"));
+          return;
+        }
+
+        String method = exchange.getRequestMethod();
+        String path = exchange.getRequestURI().getPath();
+        if ("GET".equals(method) && "/management/commands".equals(path)) {
+          writeJson(exchange, 200, iCommandService.customCommandsPayload());
+          return;
+        }
+
+        if ("POST".equals(method) && path.startsWith("/management/commands/")) {
+          String commandName = URLDecoder.decode(path.substring("/management/commands/".length()), StandardCharsets.UTF_8);
+          writeJson(exchange, 200, iCommandService.executeCustomCommand(commandName, readJsonObject(exchange)));
+          return;
+        }
+
+        if ("GET".equals(method) || "POST".equals(method)) {
+          writeJson(exchange, 404, Map.of("error", "not found"));
+          return;
+        }
+
+        writeJson(exchange, 405, Map.of("error", "method not allowed"));
+      }
+      catch (IllegalArgumentException e) {
+        writeJson(exchange, 400, Map.of("error", e.getMessage()));
+      }
+      catch (Exception e) {
+        writeJson(exchange, 500, Map.of("error", e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
+      }
+      finally {
+        exchange.close();
+      }
+    }
+  }
+
   private boolean isAuthorized(Headers headers) {
     String actual = headers.getFirst(TOKEN_HEADER);
     return iConfig.token().equals(actual);
@@ -160,101 +222,22 @@ public class ManagementServer {
       return Map.of();
     }
 
-    return parseSimpleJsonObject(body);
-  }
-
-  private static Map<String, Object> parseSimpleJsonObject(String json) {
-    String trimmed = json.trim();
-    if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) {
+    Object parsed;
+    try {
+      parsed = JSON.parse(body);
+    }
+    catch (Exception e) {
+      throw new IllegalArgumentException("Expected a JSON object body");
+    }
+    if (!(parsed instanceof Map<?, ?> rawMap)) {
       throw new IllegalArgumentException("Expected a JSON object body");
     }
 
-    String content = trimmed.substring(1, trimmed.length() - 1).trim();
-    Map<String, Object> ret = new java.util.LinkedHashMap<>();
-    if (content.isEmpty()) {
-      return ret;
-    }
-
-    List<String> parts = splitTopLevel(content);
-    for (String part : parts) {
-      int separator = part.indexOf(':');
-      if (separator <= 0) {
-        throw new IllegalArgumentException("Invalid JSON field: " + part);
-      }
-      String key = unquote(part.substring(0, separator).trim());
-      String valueText = part.substring(separator + 1).trim();
-      ret.put(key, parseSimpleValue(valueText));
+    Map<String, Object> ret = new LinkedHashMap<>();
+    for (Map.Entry<?, ?> entry : rawMap.entrySet()) {
+      ret.put(String.valueOf(entry.getKey()), entry.getValue());
     }
     return ret;
-  }
-
-  private static List<String> splitTopLevel(String content) {
-    List<String> parts = new java.util.ArrayList<>();
-    StringBuilder current = new StringBuilder();
-    boolean inString = false;
-    boolean escaped = false;
-
-    for (int i = 0; i < content.length(); i++) {
-      char c = content.charAt(i);
-      if (escaped) {
-        current.append(c);
-        escaped = false;
-        continue;
-      }
-      if (c == '\\') {
-        current.append(c);
-        escaped = true;
-        continue;
-      }
-      if (c == '"') {
-        inString = !inString;
-        current.append(c);
-        continue;
-      }
-      if (c == ',' && !inString) {
-        parts.add(current.toString().trim());
-        current.setLength(0);
-        continue;
-      }
-      current.append(c);
-    }
-    parts.add(current.toString().trim());
-    return parts;
-  }
-
-  private static Object parseSimpleValue(String valueText) {
-    if (valueText.startsWith("\"") && valueText.endsWith("\"")) {
-      return unquote(valueText);
-    }
-
-    String lower = valueText.toLowerCase(Locale.ROOT);
-    if ("true".equals(lower)) {
-      return Boolean.TRUE;
-    }
-    if ("false".equals(lower)) {
-      return Boolean.FALSE;
-    }
-    if ("null".equals(lower)) {
-      return null;
-    }
-
-    try {
-      if (valueText.contains(".")) {
-        return Double.parseDouble(valueText);
-      }
-      return Long.parseLong(valueText);
-    }
-    catch (NumberFormatException e) {
-      throw new IllegalArgumentException("Unsupported JSON value: " + valueText);
-    }
-  }
-
-  private static String unquote(String text) {
-    String trimmed = text.trim();
-    if (trimmed.length() >= 2 && trimmed.startsWith("\"") && trimmed.endsWith("\"")) {
-      trimmed = trimmed.substring(1, trimmed.length() - 1);
-    }
-    return trimmed.replace("\\\"", "\"").replace("\\\\", "\\");
   }
 
   private void writeJson(HttpExchange exchange, int status, Object payload) throws IOException {
@@ -268,45 +251,7 @@ public class ManagementServer {
   }
 
   private static String toJson(Object value) {
-    if (value == null) {
-      return "null";
-    }
-    if (value instanceof String string) {
-      return '"' + escapeJson(string) + '"';
-    }
-    if (value instanceof Number || value instanceof Boolean) {
-      return value.toString();
-    }
-    if (value instanceof Map<?, ?> map) {
-      StringBuilder builder = new StringBuilder("{");
-      boolean first = true;
-      for (Map.Entry<?, ?> entry : map.entrySet()) {
-        if (!first) {
-          builder.append(',');
-        }
-        first = false;
-        builder.append(toJson(String.valueOf(entry.getKey()))).append(':').append(toJson(entry.getValue()));
-      }
-      return builder.append('}').toString();
-    }
-    if (value instanceof Iterable<?> iterable) {
-      StringBuilder builder = new StringBuilder("[");
-      boolean first = true;
-      for (Object item : iterable) {
-        if (!first) {
-          builder.append(',');
-        }
-        first = false;
-        builder.append(toJson(item));
-      }
-      return builder.append(']').toString();
-    }
-    throw new IllegalArgumentException("Unsupported json type: " + value.getClass());
-  }
-
-  private static String escapeJson(String value) {
-    return value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
-            .replace("\r", "\\r");
+    return JSON.toJSONString(value);
   }
 
   private static String stringValue(Object value) {
