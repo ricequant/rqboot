@@ -1,5 +1,8 @@
 package com.ricequant.rqboot.management.server;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.time.Instant;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -8,6 +11,8 @@ import java.util.Map;
 import java.util.Objects;
 
 public class ManagementCommandService {
+
+  private static final Logger logger = LoggerFactory.getLogger(ManagementCommandService.class);
 
   private final RQProcessInfo processInfo;
 
@@ -89,9 +94,23 @@ public class ManagementCommandService {
       throw new IllegalArgumentException("Unknown management command: " + commandName);
     }
 
+    logger.info("Executing management command '{}' for process '{}': rawParams={}",
+            commandName, processInfo.processName(), params);
     Map<String, Object> convertedArgs = convertArgs(registeredCommand.command(), params);
-    Map<String, Object> result = registeredCommand.handler().execute(Collections.unmodifiableMap(convertedArgs));
-    return result == null ? Map.of() : new LinkedHashMap<>(result);
+    logger.info("Converted management command '{}' args for process '{}': {}",
+            commandName, processInfo.processName(), convertedArgs);
+
+    try {
+      Map<String, Object> result = registeredCommand.handler().execute(Collections.unmodifiableMap(convertedArgs));
+      Map<String, Object> safeResult = result == null ? Map.of() : new LinkedHashMap<>(result);
+      logger.info("Management command '{}' completed for process '{}': result={}",
+              commandName, processInfo.processName(), safeResult);
+      return safeResult;
+    }
+    catch (Exception e) {
+      logger.error("Management command '{}' failed for process '{}'", commandName, processInfo.processName(), e);
+      throw e;
+    }
   }
 
   public Map<String, Object> handleAction(String action, Map<String, Object> params) throws Exception {
